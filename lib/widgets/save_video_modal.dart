@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:videorecord/utils/utils.dart';
 
 class SaveVideoModal extends StatelessWidget {
   final VoidCallback onSave;
@@ -30,12 +31,17 @@ class SaveVideoModal extends StatelessWidget {
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
+                decoration: TextDecoration.none,
               ),
             ),
             const SizedBox(height: 8),
             const Text(
               'Select “YES” to save, “NO” to discard...',
-              style: TextStyle(fontSize: 14, color: Colors.white70),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white70,
+                decoration: TextDecoration.none,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -45,7 +51,10 @@ class SaveVideoModal extends StatelessWidget {
                 SizedBox(
                   width: 140,
                   child: ElevatedButton(
-                    onPressed: onSave,
+                    onPressed: () {
+                      logger.i('SaveVideoModal: Yes button clicked');
+                      onSave();
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
@@ -62,7 +71,10 @@ class SaveVideoModal extends StatelessWidget {
                 SizedBox(
                   width: 140,
                   child: ElevatedButton(
-                    onPressed: onDiscard,
+                    onPressed: () {
+                      logger.i('SaveVideoModal: No button clicked');
+                      onDiscard();
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       shape: RoundedRectangleBorder(

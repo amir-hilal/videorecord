@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -8,16 +9,17 @@ import 'package:path_provider/path_provider.dart';
 
 final logger = Logger();
 
-Future<XFile?> generateThumbnail(String videoUri) async {
+Future<String?> generateThumbnail(String videoUri) async {
   try {
-    final thumbnailPath = await VideoThumbnail.thumbnailFile(
+    final XFile thumbnailFile = await VideoThumbnail.thumbnailFile(
       video: videoUri,
-      thumbnailPath: (await getTemporaryDirectory()).path,
+      thumbnailPath: Directory.systemTemp.path,
       imageFormat: ImageFormat.PNG,
-      maxHeight: 200, // specify the height, width auto-scales
+      maxHeight: 200,
       quality: 75,
     );
-    return thumbnailPath;
+
+    return thumbnailFile.path;
   } catch (error) {
     logger.e('Thumbnail generation failed', error: error);
     return null;

@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:videorecord/widgets/save_video_modal.dart';
 
+import '../providers/video_modal_provider.dart';
 import '../providers/video_provider.dart';
 import '../utils/utils.dart';
 
@@ -22,7 +23,6 @@ class CameraScreenState extends State<CameraScreen> {
   Timer? _timer;
   int _recordingTime = 0;
   String? lastRecordedVideoPath;
-  bool showSaveModal = false;
 
   @override
   void initState() {
@@ -33,8 +33,11 @@ class CameraScreenState extends State<CameraScreen> {
   Future<void> _initializeCamera() async {
     final cameras = await availableCameras();
     final selectedCamera = cameras.first;
-    _controller = CameraController(selectedCamera, ResolutionPreset.high,
-        enableAudio: true);
+    _controller = CameraController(
+      selectedCamera,
+      ResolutionPreset.high,
+      enableAudio: true,
+    );
     await _controller?.initialize();
     setState(() {
       isCameraInitialized = true;
@@ -57,20 +60,34 @@ class CameraScreenState extends State<CameraScreen> {
     });
   }
 
-  void _toggleCameraLens() async {
+  Future<void> _toggleCameraLens() async {
     final videoProvider = Provider.of<VideoProvider>(context, listen: false);
     videoProvider.stopRecording();
+
+    if (_controller != null) {
+      await _controller?.dispose();
+    }
+
     videoProvider.toggleCameraLens();
     final cameras = await availableCameras();
     final selectedCamera = cameras.firstWhere(
       (camera) => camera.lensDirection == videoProvider.lensDirection,
     );
-    _controller = CameraController(selectedCamera, ResolutionPreset.high,
-        enableAudio: true);
-    await _controller?.initialize();
-    setState(() {
-      isCameraInitialized = true;
-    });
+
+    _controller = CameraController(
+      selectedCamera,
+      ResolutionPreset.high,
+      enableAudio: true,
+    );
+
+    try {
+      await _controller?.initialize();
+      setState(() {
+        isCameraInitialized = true;
+      });
+    } catch (e) {
+      logger.e('Error initializing camera', error: e);
+    }
   }
 
   void _startRecording() async {
@@ -103,57 +120,83 @@ class CameraScreenState extends State<CameraScreen> {
     try {
       final file = await _controller?.stopVideoRecording();
 
+      if (file != null) {
+        _handleVideoRecorded(file);
+      }
+
       setState(() {
         videoProvider.stopRecording();
         _timer?.cancel();
         _timer = null;
         _recordingTime = 0;
       });
-
-      if (file != null) {
-        setState(() {
-          lastRecordedVideoPath = file.path;
-          showSaveModal = true; // Show save modal
-        });
-      }
     } catch (e) {
       print(e);
     }
   }
 
-  void _showSaveVideoModal() async {
-    final thumbnailPath = await generateThumbnail(lastRecordedVideoPath!);
+  Future<void> _handleVideoRecorded(XFile file) async {
+    print('Video URI: ${file.path}');
+
+    final thumbnailPath = await generateThumbnail(file.path);
 
     if (!mounted) return;
 
     setState(() {
-      showSaveModal = true;
+      lastRecordedVideoPath = file.path;
+
+      if (thumbnailPath != null) {
+        Provider.of<VideoProvider>(context, listen: false)
+            .addVideo(file.path, thumbnailPath);
+      } else {
+        Provider.of<VideoProvider>(context, listen: false)
+            .addVideo(file.path, 'assets/images/placeholder.png');
+      }
     });
 
-    showDialog(
+    final videoModalProvider =
+        Provider.of<VideoModalProvider>(context, listen: false);
+    _showSaveVideoModal(videoModalProvider);
+  }
+
+  Future<void> _showSaveVideoModal(
+      VideoModalProvider videoModalProvider) async {
+    if (!mounted ||
+        lastRecordedVideoPath == null ||
+        videoModalProvider.isModalShown) {
+      return;
+    }
+
+    videoModalProvider.showModal();
+
+    // Show the modal and await its dismissal.
+    await showDialog(
       context: context,
-      builder: (context) => SaveVideoModal(
-        onSave: () {
-          final videoProvider =
-              Provider.of<VideoProvider>(context, listen: false);
-          if (thumbnailPath != null) {
-            videoProvider.addVideo(
-                lastRecordedVideoPath!, thumbnailPath as String);
-          }
-          setState(() {
-            showSaveModal = false;
-          });
-          Navigator.of(context).pop();
-        },
-        onDiscard: () {
-          setState(() {
-            lastRecordedVideoPath = null;
-            showSaveModal = false;
-          });
-          Navigator.of(context).pop();
-        },
-      ),
+      barrierDismissible: false,
+      builder: (context) {
+        return SaveVideoModal(
+          onSave: () => _handleSave(videoModalProvider),
+          onDiscard: () => _handleDiscard(videoModalProvider),
+        );
+      },
     );
+
+    if (mounted) {
+      videoModalProvider.hideModal();
+    }
+  }
+
+  void _handleSave(VideoModalProvider videoModalProvider) {
+    Navigator.of(context).pop(); // Close the dialog
+    logger.i('Video saved successfully');
+  }
+
+  void _handleDiscard(VideoModalProvider videoModalProvider) {
+    Navigator.of(context).pop(); // Close the dialog
+    setState(() {
+      lastRecordedVideoPath = null;
+    });
+    logger.i('Video discarded successfully');
   }
 
   String _formatRecordingTime(int seconds) {
@@ -168,14 +211,15 @@ class CameraScreenState extends State<CameraScreen> {
     final cameraHeight = screenWidth * (16 / 9);
 
     final videoProvider = Provider.of<VideoProvider>(context);
+    final videoModalProvider = Provider.of<VideoModalProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black.withOpacity(0.5),
         elevation: 0,
         toolbarHeight: 60,
-        title: showSaveModal
-            ? Container()
+        title: videoModalProvider.isModalShown
+            ? null
             : videoProvider.isRecording
                 ? Container(
                     width: double.infinity,
@@ -250,16 +294,7 @@ class CameraScreenState extends State<CameraScreen> {
             const Center(child: CircularProgressIndicator()),
           if (videoProvider.isGridVisible && isCameraInitialized)
             Positioned.fill(child: CustomPaint(painter: GridPainter())),
-          if (showSaveModal)
-            SaveVideoModal(
-              onSave: () => _showSaveVideoModal(),
-              onDiscard: () {
-                setState(() {
-                  showSaveModal = false;
-                });
-              },
-            ),
-          if (!showSaveModal)
+          if (!videoModalProvider.isModalShown)
             Positioned(
               bottom: 35,
               left: 0,
