@@ -4,10 +4,10 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:videorecord/widgets/save_video_modal.dart';
 
 import '../providers/video_provider.dart';
 import '../utils/utils.dart';
-import '../widgets/save_video_modal.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -22,6 +22,7 @@ class CameraScreenState extends State<CameraScreen> {
   Timer? _timer;
   int _recordingTime = 0;
   String? lastRecordedVideoPath;
+  bool showSaveModal = false;
 
   @override
   void initState() {
@@ -60,18 +61,12 @@ class CameraScreenState extends State<CameraScreen> {
     final videoProvider = Provider.of<VideoProvider>(context, listen: false);
     videoProvider.stopRecording();
     videoProvider.toggleCameraLens();
-
     final cameras = await availableCameras();
     final selectedCamera = cameras.firstWhere(
       (camera) => camera.lensDirection == videoProvider.lensDirection,
     );
-
-    _controller = CameraController(
-      selectedCamera,
-      ResolutionPreset.high,
-      enableAudio: true,
-    );
-
+    _controller = CameraController(selectedCamera, ResolutionPreset.high,
+        enableAudio: true);
     await _controller?.initialize();
     setState(() {
       isCameraInitialized = true;
@@ -80,7 +75,6 @@ class CameraScreenState extends State<CameraScreen> {
 
   void _startRecording() async {
     final videoProvider = Provider.of<VideoProvider>(context, listen: false);
-
     if (!_controller!.value.isInitialized || videoProvider.isRecording) return;
 
     try {
@@ -92,7 +86,6 @@ class CameraScreenState extends State<CameraScreen> {
       });
 
       _timer?.cancel();
-
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
           _recordingTime++;
@@ -120,8 +113,8 @@ class CameraScreenState extends State<CameraScreen> {
       if (file != null) {
         setState(() {
           lastRecordedVideoPath = file.path;
+          showSaveModal = true; // Show save modal
         });
-        _showSaveVideoModal();
       }
     } catch (e) {
       print(e);
@@ -133,6 +126,10 @@ class CameraScreenState extends State<CameraScreen> {
 
     if (!mounted) return;
 
+    setState(() {
+      showSaveModal = true;
+    });
+
     showDialog(
       context: context,
       builder: (context) => SaveVideoModal(
@@ -143,11 +140,15 @@ class CameraScreenState extends State<CameraScreen> {
             videoProvider.addVideo(
                 lastRecordedVideoPath!, thumbnailPath as String);
           }
+          setState(() {
+            showSaveModal = false;
+          });
           Navigator.of(context).pop();
         },
         onDiscard: () {
           setState(() {
             lastRecordedVideoPath = null;
+            showSaveModal = false;
           });
           Navigator.of(context).pop();
         },
@@ -170,65 +171,71 @@ class CameraScreenState extends State<CameraScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: videoProvider.isRecording
-            ? Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Recording',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _formatRecordingTime(_recordingTime),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+        backgroundColor: Colors.black.withOpacity(
+            0.5), // Adjust opacity or set to Colors.transparent for device’s default
+        elevation: 0,
+        toolbarHeight: 60, // Set a fixed height for the AppBar
+        title: showSaveModal
+            ? Container() // Empty content when save modal is shown
+            : videoProvider.isRecording
+                ? Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Recording',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _formatRecordingTime(_recordingTime),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: SvgPicture.asset(
+                          videoProvider.isGridVisible
+                              ? 'lib/assets/icons/grid-on.svg'
+                              : 'lib/assets/icons/grid-off.svg',
+                          width: 24,
+                          height: 24,
+                        ),
+                        onPressed: _toggleGrid,
                       ),
-                    ),
-                  ],
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: SvgPicture.asset(
-                      videoProvider.isGridVisible
-                          ? 'lib/assets/icons/grid-on.svg'
-                          : 'lib/assets/icons/grid-off.svg',
-                      width: 24,
-                      height: 24,
-                    ),
-                    onPressed: _toggleGrid,
+                      const SizedBox(width: 20),
+                      IconButton(
+                        icon: SvgPicture.asset(
+                          videoProvider.isFlashOn
+                              ? 'lib/assets/icons/flash-on.svg'
+                              : 'lib/assets/icons/flash-off.svg',
+                          width: 24,
+                          height: 24,
+                        ),
+                        onPressed: _toggleFlash,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 20),
-                  IconButton(
-                    icon: SvgPicture.asset(
-                      videoProvider.isFlashOn
-                          ? 'lib/assets/icons/flash-on.svg'
-                          : 'lib/assets/icons/flash-off.svg',
-                      width: 24,
-                      height: 24,
-                    ),
-                    onPressed: _toggleFlash,
-                  ),
-                ],
-              ),
         automaticallyImplyLeading: false,
       ),
       body: Stack(
@@ -236,85 +243,90 @@ class CameraScreenState extends State<CameraScreen> {
           if (isCameraInitialized)
             Center(
               child: SizedBox(
-                width: screenWidth,
-                height: cameraHeight,
-                child: CameraPreview(_controller!),
-              ),
+                  width: screenWidth,
+                  height: cameraHeight,
+                  child: CameraPreview(_controller!)),
             )
           else
             const Center(child: CircularProgressIndicator()),
           if (videoProvider.isGridVisible &&
               isCameraInitialized &&
               !videoProvider.isRecording)
-            Positioned.fill(
-              child: CustomPaint(
-                painter: GridPainter(),
-              ),
+            Positioned.fill(child: CustomPaint(painter: GridPainter())),
+          if (showSaveModal)
+            SaveVideoModal(
+              onSave: () => _showSaveVideoModal(),
+              onDiscard: () {
+                setState(() {
+                  showSaveModal = false;
+                });
+              },
             ),
-          Positioned(
-            bottom: 35,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.photo_library, color: Colors.white),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/gallery');
-                  },
-                ),
-                GestureDetector(
-                  onTap: () => videoProvider.isRecording
-                      ? _stopRecording()
-                      : _startRecording(),
-                  child: Container(
-                    width: 70,
-                    height: 70,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: videoProvider.isRecording ? 23 : 22,
-                        height: videoProvider.isRecording ? 23 : 22,
-                        decoration: BoxDecoration(
-                          color: videoProvider.isRecording
-                              ? Colors.black
-                              : Colors.red,
-                          shape: videoProvider.isRecording
-                              ? BoxShape.rectangle
-                              : BoxShape.circle,
-                          borderRadius: videoProvider.isRecording
-                              ? BorderRadius.circular(3)
-                              : null,
+          if (!showSaveModal)
+            Positioned(
+              bottom: 35,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.photo_library, color: Colors.white),
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/gallery');
+                    },
+                  ),
+                  GestureDetector(
+                    onTap: () => videoProvider.isRecording
+                        ? _stopRecording()
+                        : _startRecording(),
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: videoProvider.isRecording ? 23 : 22,
+                          height: videoProvider.isRecording ? 23 : 22,
+                          decoration: BoxDecoration(
+                            color: videoProvider.isRecording
+                                ? Colors.black
+                                : Colors.red,
+                            shape: videoProvider.isRecording
+                                ? BoxShape.rectangle
+                                : BoxShape.circle,
+                            borderRadius: videoProvider.isRecording
+                                ? BorderRadius.circular(3)
+                                : null,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: _toggleCameraLens,
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.4),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: SvgPicture.asset(
-                        'lib/assets/icons/flip.svg',
-                        width: 24,
-                        height: 24,
+                  GestureDetector(
+                    onTap: _toggleCameraLens,
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: SvgPicture.asset(
+                          'lib/assets/icons/flip.svg',
+                          width: 24,
+                          height: 24,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
