@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 
 class VideoProvider with ChangeNotifier {
   final List<String> _videos = [];
@@ -8,6 +8,7 @@ class VideoProvider with ChangeNotifier {
   bool _isFlashOn = false;
   bool _isGridVisible = false;
   CameraLensDirection _lensDirection = CameraLensDirection.back;
+  String? _lastRecordedThumbnailPath;
 
   List<String> get videos => _videos;
   List<String> get thumbnails => _thumbnails;
@@ -15,6 +16,7 @@ class VideoProvider with ChangeNotifier {
   bool get isFlashOn => _isFlashOn;
   bool get isGridVisible => _isGridVisible;
   CameraLensDirection get lensDirection => _lensDirection;
+  String? get lastRecordedThumbnailPath => _lastRecordedThumbnailPath;
 
   void addVideo(String videoUri, String thumbnailUri) {
     _videos.add(videoUri);
@@ -46,6 +48,11 @@ class VideoProvider with ChangeNotifier {
     _lensDirection = _lensDirection == CameraLensDirection.back
         ? CameraLensDirection.front
         : CameraLensDirection.back;
+    notifyListeners();
+  }
+
+  void setLastRecordedThumbnail(String thumbnailPath) {
+    _lastRecordedThumbnailPath = thumbnailPath;
     notifyListeners();
   }
 }

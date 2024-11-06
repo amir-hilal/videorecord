@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/video_provider.dart';
 
 class VideoGalleryScreen extends StatelessWidget {

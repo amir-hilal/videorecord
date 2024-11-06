@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -148,9 +149,13 @@ class CameraScreenState extends State<CameraScreen> {
       if (thumbnailPath != null) {
         Provider.of<VideoProvider>(context, listen: false)
             .addVideo(file.path, thumbnailPath);
+        Provider.of<VideoProvider>(context, listen: false)
+            .setLastRecordedThumbnail(thumbnailPath); // Save thumbnail path
       } else {
         Provider.of<VideoProvider>(context, listen: false)
             .addVideo(file.path, 'assets/images/placeholder.png');
+        Provider.of<VideoProvider>(context, listen: false)
+            .setLastRecordedThumbnail('assets/images/placeholder.png');
       }
     });
 
@@ -303,12 +308,33 @@ class CameraScreenState extends State<CameraScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   if (!videoProvider.isRecording)
-                    IconButton(
-                      icon:
-                          const Icon(Icons.photo_library, color: Colors.white),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/gallery');
+                    GestureDetector(
+                      onTap: () {
+                        if (videoProvider.lastRecordedThumbnailPath != null) {
+                          Navigator.pushNamed(context, '/gallery');
+                        }
                       },
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.4),
+                          shape: BoxShape.circle,
+                          image: videoProvider.lastRecordedThumbnailPath != null
+                              ? DecorationImage(
+                                  image: FileImage(
+                                    File(videoProvider
+                                        .lastRecordedThumbnailPath!),
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: videoProvider.lastRecordedThumbnailPath == null
+                            ? const Icon(Icons.photo_library,
+                                color: Colors.white)
+                            : null,
+                      ),
                     ),
                   GestureDetector(
                     onTap: () => videoProvider.isRecording
