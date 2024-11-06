@@ -19,6 +19,8 @@ class CameraScreenState extends State<CameraScreen> {
   bool isFlashOn = false;
   bool isGridVisible = false;
   CameraLensDirection lensDirection = CameraLensDirection.back;
+  Timer? _timer;
+  int _recordingTime = 0; // Time in seconds
 
   @override
   void initState() {
@@ -28,12 +30,12 @@ class CameraScreenState extends State<CameraScreen> {
 
   Future<void> _initializeCamera() async {
     final cameras = await availableCameras();
-    final frontCamera = cameras.firstWhere(
+    final selectedCamera = cameras.firstWhere(
       (camera) => camera.lensDirection == lensDirection,
     );
 
     _controller = CameraController(
-      frontCamera,
+      selectedCamera,
       ResolutionPreset.high,
       enableAudio: true,
     );
@@ -69,6 +71,14 @@ class CameraScreenState extends State<CameraScreen> {
       await _controller?.startVideoRecording();
       setState(() {
         isRecording = true;
+        _recordingTime = 0; // Reset the timer
+      });
+
+      // Start a timer to update recording time every second
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _recordingTime++;
+        });
       });
     } catch (e) {
       if (kDebugMode) {
@@ -83,10 +93,10 @@ class CameraScreenState extends State<CameraScreen> {
       final file = await _controller?.stopVideoRecording();
       setState(() {
         isRecording = false;
+        _timer?.cancel(); // Stop the timer
       });
       if (file != null) {
-        // Navigate to the save screen or save the video
-        // Here you can navigate to the gallery or save the file
+        // Save or process the recorded video
       }
     } catch (e) {
       if (kDebugMode) {
@@ -95,51 +105,102 @@ class CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  String _formatRecordingTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cameraHeight = screenWidth * (16 / 9); 
+
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: SizedBox(
-                width: 24,
-                height: 24,
-                child: SvgPicture.asset(
-                  isGridVisible
-                      ? 'lib/assets/icons/grid-on.svg'
-                      : 'lib/assets/icons/grid-off.svg',
-                  placeholderBuilder: (BuildContext context) =>
-                      const CircularProgressIndicator(),
+        title: isRecording
+            ? Container(
+                width: double
+                    .infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 3),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Recording',
+                      style: TextStyle(
+                        fontSize: 15, // Set font size
+                        fontWeight: FontWeight.w400, // Set font weight
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12, // Adjust horizontal padding
+                        vertical: 5, // Adjust vertical padding
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius:
+                            BorderRadius.circular(12), // Set border radius
+                      ),
+                      child: Text(
+                        _formatRecordingTime(_recordingTime),
+                        style: const TextStyle(
+                          fontSize: 14, // Adjust font size
+                          fontWeight: FontWeight.w700, // Adjust font weight
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: SvgPicture.asset(
+                      isGridVisible
+                          ? 'lib/assets/icons/grid-on.svg'
+                          : 'lib/assets/icons/grid-off.svg',
+                      width: 24,
+                      height: 24,
+                      placeholderBuilder: (BuildContext context) =>
+                          const CircularProgressIndicator(),
+                    ),
+                    onPressed: _toggleGrid,
+                  ),
+                  const SizedBox(width: 20),
+                  IconButton(
+                    icon: SvgPicture.asset(
+                      isFlashOn
+                          ? 'lib/assets/icons/flash-on.svg'
+                          : 'lib/assets/icons/flash-off.svg',
+                      width: 24,
+                      height: 24,
+                      placeholderBuilder: (BuildContext context) =>
+                          const CircularProgressIndicator(),
+                    ),
+                    onPressed: _toggleFlash,
+                  ),
+                ],
               ),
-              onPressed: _toggleGrid,
-            ),
-            const SizedBox(width: 20), // Add spacing between the icons
-            IconButton(
-              icon: SizedBox(
-                width: 24,
-                height: 24,
-                child: SvgPicture.asset(
-                  isFlashOn
-                      ? 'lib/assets/icons/flash-on.svg'
-                      : 'lib/assets/icons/flash-off.svg',
-                ),
-              ),
-              onPressed: _toggleFlash,
-            ),
-          ],
-        ),
         automaticallyImplyLeading: false,
       ),
       body: Stack(
         children: [
           if (isCameraInitialized)
-            CameraPreview(_controller!)
+            Center(
+              child: SizedBox(
+                width: screenWidth,
+                height: cameraHeight,
+                child: CameraPreview(_controller!),
+              ),
+            )
           else
             const Center(child: CircularProgressIndicator()),
-          if (isGridVisible && isCameraInitialized)
+          if (isGridVisible && isCameraInitialized && !isRecording)
             Positioned.fill(
               child: CustomPaint(
                 painter: GridPainter(),
@@ -152,14 +213,12 @@ class CameraScreenState extends State<CameraScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Go to Gallery Button
                 IconButton(
                   icon: const Icon(Icons.photo_library, color: Colors.white),
                   onPressed: () {
                     Navigator.pushNamed(context, '/gallery');
                   },
                 ),
-                // Recording Button
                 GestureDetector(
                   onTap: () =>
                       isRecording ? _stopRecording() : _startRecording(),
@@ -186,15 +245,13 @@ class CameraScreenState extends State<CameraScreen> {
                     ),
                   ),
                 ),
-                // Flip Camera Button
                 GestureDetector(
                   onTap: _toggleCameraLens,
                   child: Container(
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: Colors.black
-                          .withOpacity(0.4), // Semi-transparent background
+                      color: Colors.black.withOpacity(0.4),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -217,6 +274,7 @@ class CameraScreenState extends State<CameraScreen> {
   @override
   void dispose() {
     _controller?.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 }
@@ -228,13 +286,11 @@ class GridPainter extends CustomPainter {
       ..color = Colors.white.withOpacity(0.5)
       ..strokeWidth = 1.0;
 
-    // Draw vertical lines
     final verticalGap = size.width / 3;
     for (double x = verticalGap; x < size.width; x += verticalGap) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
 
-    // Draw horizontal lines
     final horizontalGap = size.height / 3;
     for (double y = horizontalGap; y < size.height; y += horizontalGap) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
