@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/video_provider.dart';
+import '../utils/utils.dart';
+import '../widgets/save_video_modal.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -15,12 +19,9 @@ class CameraScreen extends StatefulWidget {
 class CameraScreenState extends State<CameraScreen> {
   CameraController? _controller;
   bool isCameraInitialized = false;
-  bool isRecording = false;
-  bool isFlashOn = false;
-  bool isGridVisible = false;
-  CameraLensDirection lensDirection = CameraLensDirection.back;
   Timer? _timer;
-  int _recordingTime = 0; // Time in seconds
+  int _recordingTime = 0;
+  String? lastRecordedVideoPath;
 
   @override
   void initState() {
@@ -30,15 +31,9 @@ class CameraScreenState extends State<CameraScreen> {
 
   Future<void> _initializeCamera() async {
     final cameras = await availableCameras();
-    final selectedCamera = cameras.firstWhere(
-      (camera) => camera.lensDirection == lensDirection,
-    );
-
-    _controller = CameraController(
-      selectedCamera,
-      ResolutionPreset.high,
-      enableAudio: true,
-    );
+    final selectedCamera = cameras.first;
+    _controller = CameraController(selectedCamera, ResolutionPreset.high,
+        enableAudio: true);
     await _controller?.initialize();
     setState(() {
       isCameraInitialized = true;
@@ -47,62 +42,115 @@ class CameraScreenState extends State<CameraScreen> {
 
   void _toggleFlash() {
     setState(() {
-      isFlashOn = !isFlashOn;
-      _controller?.setFlashMode(isFlashOn ? FlashMode.torch : FlashMode.off);
+      final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+      videoProvider.toggleFlash();
+      _controller?.setFlashMode(
+          videoProvider.isFlashOn ? FlashMode.torch : FlashMode.off);
     });
   }
 
   void _toggleGrid() {
     setState(() {
-      isGridVisible = !isGridVisible;
+      final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+      videoProvider.toggleGrid();
     });
   }
 
   void _toggleCameraLens() async {
-    lensDirection = lensDirection == CameraLensDirection.back
-        ? CameraLensDirection.front
-        : CameraLensDirection.back;
-    await _initializeCamera();
+    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+    videoProvider.stopRecording();
+    videoProvider.toggleCameraLens();
+
+    final cameras = await availableCameras();
+    final selectedCamera = cameras.firstWhere(
+      (camera) => camera.lensDirection == videoProvider.lensDirection,
+    );
+
+    _controller = CameraController(
+      selectedCamera,
+      ResolutionPreset.high,
+      enableAudio: true,
+    );
+
+    await _controller?.initialize();
+    setState(() {
+      isCameraInitialized = true;
+    });
   }
 
   void _startRecording() async {
-    if (!_controller!.value.isInitialized || isRecording) return;
+    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+
+    if (!_controller!.value.isInitialized || videoProvider.isRecording) return;
+
     try {
       await _controller?.startVideoRecording();
+      videoProvider.startRecording();
       setState(() {
-        isRecording = true;
-        _recordingTime = 0; // Reset the timer
+        _recordingTime = 0;
+        lastRecordedVideoPath = null;
       });
 
-      // Start a timer to update recording time every second
+      // Cancel any existing timer before starting a new one
+      _timer?.cancel();
+
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
           _recordingTime++;
         });
       });
     } catch (e) {
-      if (kDebugMode) {
-        print(e);
-      }
+      print(e);
     }
   }
 
   void _stopRecording() async {
-    if (!_controller!.value.isInitialized || !isRecording) return;
+    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+    if (!_controller!.value.isInitialized || !videoProvider.isRecording) return;
+
     try {
       final file = await _controller?.stopVideoRecording();
+
       setState(() {
-        isRecording = false;
-        _timer?.cancel(); // Stop the timer
+        videoProvider.stopRecording();
+        _timer?.cancel();
+        _timer = null;
+        _recordingTime = 0;
       });
+
       if (file != null) {
-        // Save or process the recorded video
+        setState(() {
+          lastRecordedVideoPath = file.path;
+        });
+        _showSaveVideoModal();
       }
     } catch (e) {
-      if (kDebugMode) {
-        print(e);
-      }
+      print(e);
     }
+  }
+
+  void _showSaveVideoModal() {
+    showDialog(
+      context: context,
+      builder: (context) => SaveVideoModal(
+        onSave: () async {
+          final videoProvider =
+              Provider.of<VideoProvider>(context, listen: false);
+          final thumbnailPath = await generateThumbnail(lastRecordedVideoPath!);
+          if (thumbnailPath != null) {
+            videoProvider.addVideo(
+                lastRecordedVideoPath!, thumbnailPath as String);
+          }
+          Navigator.of(context).pop(); // Close modal
+        },
+        onDiscard: () {
+          setState(() {
+            lastRecordedVideoPath = null;
+          });
+          Navigator.of(context).pop(); // Close modal
+        },
+      ),
+    );
   }
 
   String _formatRecordingTime(int seconds) {
@@ -114,41 +162,38 @@ class CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final cameraHeight = screenWidth * (16 / 9); 
+    final cameraHeight = screenWidth * (16 / 9);
+
+    final videoProvider = Provider.of<VideoProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: isRecording
+        title: videoProvider.isRecording
             ? Container(
-                width: double
-                    .infinity,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 3),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       'Recording',
                       style: TextStyle(
-                        fontSize: 15, // Set font size
-                        fontWeight: FontWeight.w400, // Set font weight
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12, // Adjust horizontal padding
-                        vertical: 5, // Adjust vertical padding
-                      ),
+                          horizontal: 12, vertical: 5),
                       decoration: BoxDecoration(
                         color: Colors.red,
-                        borderRadius:
-                            BorderRadius.circular(12), // Set border radius
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         _formatRecordingTime(_recordingTime),
                         style: const TextStyle(
-                          fontSize: 14, // Adjust font size
-                          fontWeight: FontWeight.w700, // Adjust font weight
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
                           color: Colors.white,
                         ),
                       ),
@@ -161,26 +206,22 @@ class CameraScreenState extends State<CameraScreen> {
                 children: [
                   IconButton(
                     icon: SvgPicture.asset(
-                      isGridVisible
+                      videoProvider.isGridVisible
                           ? 'lib/assets/icons/grid-on.svg'
                           : 'lib/assets/icons/grid-off.svg',
                       width: 24,
                       height: 24,
-                      placeholderBuilder: (BuildContext context) =>
-                          const CircularProgressIndicator(),
                     ),
                     onPressed: _toggleGrid,
                   ),
                   const SizedBox(width: 20),
                   IconButton(
                     icon: SvgPicture.asset(
-                      isFlashOn
+                      videoProvider.isFlashOn
                           ? 'lib/assets/icons/flash-on.svg'
                           : 'lib/assets/icons/flash-off.svg',
                       width: 24,
                       height: 24,
-                      placeholderBuilder: (BuildContext context) =>
-                          const CircularProgressIndicator(),
                     ),
                     onPressed: _toggleFlash,
                   ),
@@ -200,7 +241,9 @@ class CameraScreenState extends State<CameraScreen> {
             )
           else
             const Center(child: CircularProgressIndicator()),
-          if (isGridVisible && isCameraInitialized && !isRecording)
+          if (videoProvider.isGridVisible &&
+              isCameraInitialized &&
+              !videoProvider.isRecording)
             Positioned.fill(
               child: CustomPaint(
                 painter: GridPainter(),
@@ -220,8 +263,9 @@ class CameraScreenState extends State<CameraScreen> {
                   },
                 ),
                 GestureDetector(
-                  onTap: () =>
-                      isRecording ? _stopRecording() : _startRecording(),
+                  onTap: () => videoProvider.isRecording
+                      ? _stopRecording()
+                      : _startRecording(),
                   child: Container(
                     width: 70,
                     height: 70,
@@ -231,15 +275,18 @@ class CameraScreenState extends State<CameraScreen> {
                     ),
                     child: Center(
                       child: Container(
-                        width: isRecording ? 23 : 22,
-                        height: isRecording ? 23 : 22,
+                        width: videoProvider.isRecording ? 23 : 22,
+                        height: videoProvider.isRecording ? 23 : 22,
                         decoration: BoxDecoration(
-                          color: isRecording ? Colors.black : Colors.red,
-                          shape: isRecording
+                          color: videoProvider.isRecording
+                              ? Colors.black
+                              : Colors.red,
+                          shape: videoProvider.isRecording
                               ? BoxShape.rectangle
                               : BoxShape.circle,
-                          borderRadius:
-                              isRecording ? BorderRadius.circular(3) : null,
+                          borderRadius: videoProvider.isRecording
+                              ? BorderRadius.circular(3)
+                              : null,
                         ),
                       ),
                     ),
