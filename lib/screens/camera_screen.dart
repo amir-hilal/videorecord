@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -98,32 +99,39 @@ class CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: (RichText(
-          text: const TextSpan(
-            text: 'Camera Preview',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: SizedBox(
+                width: 24,
+                height: 24,
+                child: SvgPicture.asset(
+                  isGridVisible
+                      ? 'lib/assets/icons/grid-on.svg'
+                      : 'lib/assets/icons/grid-off.svg',
+                  placeholderBuilder: (BuildContext context) =>
+                      const CircularProgressIndicator(),
+                ),
+              ),
+              onPressed: _toggleGrid,
             ),
-          ),
-        )),
-        actions: [
-          IconButton(
-            icon: Icon(
-              isGridVisible ? Icons.grid_on : Icons.grid_off,
-              color: Colors.white,
+            const SizedBox(width: 20), // Add spacing between the icons
+            IconButton(
+              icon: SizedBox(
+                width: 24,
+                height: 24,
+                child: SvgPicture.asset(
+                  isFlashOn
+                      ? 'lib/assets/icons/flash-on.svg'
+                      : 'lib/assets/icons/flash-off.svg',
+                ),
+              ),
+              onPressed: _toggleFlash,
             ),
-            onPressed: _toggleGrid,
-          ),
-          IconButton(
-            icon: Icon(
-              isFlashOn ? Icons.flash_on : Icons.flash_off,
-              color: Colors.white,
-            ),
-            onPressed: _toggleFlash,
-          ),
-        ],
+          ],
+        ),
+        automaticallyImplyLeading: false,
       ),
       body: Stack(
         children: [
@@ -138,39 +146,67 @@ class CameraScreenState extends State<CameraScreen> {
               ),
             ),
           Positioned(
-            bottom: 80,
-            left: 20,
-            child: IconButton(
-              icon: const Icon(Icons.photo_library, color: Colors.white),
-              onPressed: () {
-                Navigator.pushNamed(context, '/gallery');
-              },
-            ),
-          ),
-          Positioned(
-            bottom: 40,
-            left: MediaQuery.of(context).size.width / 2 - 35,
-            child: GestureDetector(
-              onTap: () => isRecording ? _stopRecording() : _startRecording(),
-              child: Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: isRecording ? Colors.red : Colors.white,
-                  shape: BoxShape.circle,
+            bottom: 35,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Go to Gallery Button
+                IconButton(
+                  icon: const Icon(Icons.photo_library, color: Colors.white),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/gallery');
+                  },
                 ),
-                child: isRecording
-                    ? const Icon(Icons.stop, color: Colors.black, size: 30)
-                    : const Icon(Icons.videocam, color: Colors.black, size: 30),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 40,
-            right: 20,
-            child: IconButton(
-              icon: const Icon(Icons.cameraswitch, color: Colors.white),
-              onPressed: _toggleCameraLens,
+                // Recording Button
+                GestureDetector(
+                  onTap: () =>
+                      isRecording ? _stopRecording() : _startRecording(),
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: isRecording ? 23 : 22,
+                        height: isRecording ? 23 : 22,
+                        decoration: BoxDecoration(
+                          color: isRecording ? Colors.black : Colors.red,
+                          shape: isRecording
+                              ? BoxShape.rectangle
+                              : BoxShape.circle,
+                          borderRadius:
+                              isRecording ? BorderRadius.circular(3) : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Flip Camera Button
+                GestureDetector(
+                  onTap: _toggleCameraLens,
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.black
+                          .withOpacity(0.4), // Semi-transparent background
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: SvgPicture.asset(
+                        'lib/assets/icons/flip.svg',
+                        width: 24,
+                        height: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
