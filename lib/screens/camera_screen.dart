@@ -171,12 +171,11 @@ class CameraScreenState extends State<CameraScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(
-            0.5), // Adjust opacity or set to Colors.transparent for device’s default
+        backgroundColor: Colors.black.withOpacity(0.5),
         elevation: 0,
-        toolbarHeight: 60, // Set a fixed height for the AppBar
+        toolbarHeight: 60,
         title: showSaveModal
-            ? Container() // Empty content when save modal is shown
+            ? Container()
             : videoProvider.isRecording
                 ? Container(
                     width: double.infinity,
@@ -249,9 +248,7 @@ class CameraScreenState extends State<CameraScreen> {
             )
           else
             const Center(child: CircularProgressIndicator()),
-          if (videoProvider.isGridVisible &&
-              isCameraInitialized &&
-              !videoProvider.isRecording)
+          if (videoProvider.isGridVisible && isCameraInitialized)
             Positioned.fill(child: CustomPaint(painter: GridPainter())),
           if (showSaveModal)
             SaveVideoModal(
@@ -270,12 +267,14 @@ class CameraScreenState extends State<CameraScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.photo_library, color: Colors.white),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/gallery');
-                    },
-                  ),
+                  if (!videoProvider.isRecording)
+                    IconButton(
+                      icon:
+                          const Icon(Icons.photo_library, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/gallery');
+                      },
+                    ),
                   GestureDetector(
                     onTap: () => videoProvider.isRecording
                         ? _stopRecording()
@@ -306,24 +305,25 @@ class CameraScreenState extends State<CameraScreen> {
                       ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _toggleCameraLens,
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.4),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: SvgPicture.asset(
-                          'lib/assets/icons/flip.svg',
-                          width: 24,
-                          height: 24,
+                  if (!videoProvider.isRecording)
+                    GestureDetector(
+                      onTap: _toggleCameraLens,
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.4),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: SvgPicture.asset(
+                            'lib/assets/icons/flip.svg',
+                            width: 24,
+                            height: 24,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
