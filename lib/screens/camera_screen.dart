@@ -91,7 +91,6 @@ class CameraScreenState extends State<CameraScreen> {
         lastRecordedVideoPath = null;
       });
 
-      // Cancel any existing timer before starting a new one
       _timer?.cancel();
 
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -129,25 +128,28 @@ class CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  void _showSaveVideoModal() {
+  void _showSaveVideoModal() async {
+    final thumbnailPath = await generateThumbnail(lastRecordedVideoPath!);
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => SaveVideoModal(
-        onSave: () async {
+        onSave: () {
           final videoProvider =
               Provider.of<VideoProvider>(context, listen: false);
-          final thumbnailPath = await generateThumbnail(lastRecordedVideoPath!);
           if (thumbnailPath != null) {
             videoProvider.addVideo(
                 lastRecordedVideoPath!, thumbnailPath as String);
           }
-          Navigator.of(context).pop(); // Close modal
+          Navigator.of(context).pop();
         },
         onDiscard: () {
           setState(() {
             lastRecordedVideoPath = null;
           });
-          Navigator.of(context).pop(); // Close modal
+          Navigator.of(context).pop();
         },
       ),
     );
