@@ -53,14 +53,13 @@ Future<String?> generateThumbnail(String videoUri) async {
 Future<void> playReadyToRecordAudio() async {
   final player = AudioPlayer();
   try {
-    await player.setSource(AssetSource("assets/audio/ready-to-record.mp3"));
-    await player.resume();
+    // String relativePath = 'assets/audio/ready-to-record.mp3';
+
+    await player.play(AssetSource('audio/ready-to-record.mp3'));
   } catch (error) {
     logger.e('Failed to play audio', error: error);
   }
 }
-
-// const STORAGE_THRESHOLD = 50 * 1024 * 1024; // 50 MB buffer
 
 Future<int> checkAvailableStorage() async {
   try {

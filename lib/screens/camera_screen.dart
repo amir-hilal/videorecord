@@ -54,6 +54,7 @@ class CameraScreenState extends State<CameraScreen> {
       );
       await _controller?.initialize();
       await _controller?.setZoomLevel(_zoomLevel);
+      playReadyToRecordAudio();
       if (!mounted) return;
 
       setState(() {
@@ -157,7 +158,7 @@ class CameraScreenState extends State<CameraScreen> {
         await _checkStorageDuringRecording();
       });
     } catch (e) {
-      print(e);
+      logger.i(e);
     }
   }
 
@@ -193,12 +194,12 @@ class CameraScreenState extends State<CameraScreen> {
         _recordingTime = 0;
       });
     } catch (e) {
-      print(e);
+      logger.e(e);
     }
   }
 
   Future<void> _handleVideoRecorded(XFile file) async {
-    print('Video URI: ${file.path}');
+    logger.i('Video URI: ${file.path}');
 
     final thumbnailPath = await generateThumbnail(file.path);
 
@@ -237,6 +238,7 @@ class CameraScreenState extends State<CameraScreen> {
   void _handleSave(VideoModalProvider videoModalProvider) {
     videoModalProvider.hideModal();
     logger.i('Video saved successfully');
+    playReadyToRecordAudio();
   }
 
   void _handleDiscard(VideoModalProvider videoModalProvider) {
@@ -245,6 +247,7 @@ class CameraScreenState extends State<CameraScreen> {
       lastRecordedVideoPath = null;
     });
     logger.i('Video discarded successfully');
+    playReadyToRecordAudio();
   }
 
   String _formatRecordingTime(int seconds) {
@@ -329,8 +332,8 @@ class CameraScreenState extends State<CameraScreen> {
                       IconButton(
                         icon: SvgPicture.asset(
                           videoProvider.isGridVisible
-                              ? 'lib/assets/icons/grid-on.svg'
-                              : 'lib/assets/icons/grid-off.svg',
+                              ? 'assets/icons/grid-on.svg'
+                              : 'assets/icons/grid-off.svg',
                           width: 24,
                           height: 24,
                         ),
@@ -340,8 +343,8 @@ class CameraScreenState extends State<CameraScreen> {
                       IconButton(
                         icon: SvgPicture.asset(
                           videoProvider.isFlashOn
-                              ? 'lib/assets/icons/flash-on.svg'
-                              : 'lib/assets/icons/flash-off.svg',
+                              ? 'assets/icons/flash-on.svg'
+                              : 'assets/icons/flash-off.svg',
                           width: 24,
                           height: 24,
                         ),
@@ -446,7 +449,7 @@ class CameraScreenState extends State<CameraScreen> {
                           ),
                           child: Center(
                             child: SvgPicture.asset(
-                              'lib/assets/icons/flip.svg',
+                              'assets/icons/flip.svg',
                               width: 24,
                               height: 24,
                             ),
