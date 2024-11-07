@@ -38,7 +38,8 @@ Future<String?> generateThumbnail(String videoUri) async {
       video: videoUri,
       thumbnailPath: Directory.systemTemp.path,
       imageFormat: ImageFormat.PNG,
-      maxHeight: 200,
+      maxHeight: 480,
+      maxWidth: 270, // Ensure 9:16 aspect ratio
       quality: 75,
     );
 
@@ -52,7 +53,7 @@ Future<String?> generateThumbnail(String videoUri) async {
 Future<void> playReadyToRecordAudio() async {
   final player = AudioPlayer();
   try {
-    await player.setSource(AssetSource("lib/assets/audio/ready-to-record.mp3"));
+    await player.setSource(AssetSource("assets/audio/ready-to-record.mp3"));
     await player.resume();
   } catch (error) {
     logger.e('Failed to play audio', error: error);

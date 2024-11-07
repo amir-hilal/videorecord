@@ -458,7 +458,7 @@ class CameraScreenState extends State<CameraScreen> {
               ),
             if (!videoModalProvider.isModalShown)
               Positioned(
-                bottom: 150,
+                bottom: 195,
                 left: 0,
                 right: 0,
                 child: ZoomControl(

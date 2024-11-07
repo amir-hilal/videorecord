@@ -21,10 +21,11 @@ class VideoGalleryScreen extends StatelessWidget {
       ),
       body: GridView.builder(
         padding: const EdgeInsets.all(10),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 180,
           mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 9 / 16,
         ),
         itemCount: videoProvider.videos.length,
         itemBuilder: (context, index) {
@@ -36,9 +37,12 @@ class VideoGalleryScreen extends StatelessWidget {
                 arguments: videoProvider.videos[index],
               );
             },
-            child: Image.file(
-              File(videoProvider.thumbnails[index]),
-              fit: BoxFit.cover,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.file(
+                File(videoProvider.thumbnails[index]),
+                fit: BoxFit.cover,
+              ),
             ),
           );
         },
