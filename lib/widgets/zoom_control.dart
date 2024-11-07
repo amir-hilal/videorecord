@@ -17,7 +17,6 @@ class ZoomControl extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
         decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.3),
           borderRadius: BorderRadius.circular(25),
@@ -30,12 +29,12 @@ class ZoomControl extends StatelessWidget {
                 setZoom(level['value']);
               },
               child: Container(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 11),
                 decoration: BoxDecoration(
                   color: zoom == level['value']
                       ? Colors.white
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(40),
                 ),
                 child: Text(
                   level['label'],

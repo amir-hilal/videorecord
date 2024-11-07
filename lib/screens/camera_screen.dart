@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:videorecord/widgets/save_video_modal.dart';
 import 'package:videorecord/widgets/zoom_control.dart';
+
 import '../providers/video_modal_provider.dart';
 import '../providers/video_provider.dart';
 import '../utils/utils.dart';
@@ -27,6 +28,7 @@ class CameraScreenState extends State<CameraScreen> {
   bool isSwitchingCamera = false;
   int _currentCameraIndex = 0;
   double _zoomLevel = 1.0;
+  double _lastDistance = 0.0;
 
   @override
   void initState() {
@@ -231,6 +233,21 @@ class CameraScreenState extends State<CameraScreen> {
     });
   }
 
+  void _handlePinchZoom(ScaleUpdateDetails details) {
+    if (details.pointerCount == 2) {
+      if (_lastDistance != details.scale) {
+        final newZoomLevel =
+            (_zoomLevel + (details.scale - 1) * 0.05).clamp(1.0, 8.0);
+        _setZoom(newZoomLevel);
+        _lastDistance = details.scale;
+      }
+    }
+  }
+
+  void _resetPinch() {
+    _lastDistance = 0.0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -307,122 +324,128 @@ class CameraScreenState extends State<CameraScreen> {
                   ),
         automaticallyImplyLeading: false,
       ),
-      body: Stack(
-        children: [
-          if (isCameraInitialized && !isSwitchingCamera)
-            Center(
-              child: SizedBox(
-                width: screenWidth,
-                height: cameraHeight,
-                child: CameraPreview(_controller!),
+      body: GestureDetector(
+        onScaleUpdate: _handlePinchZoom,
+        onScaleEnd: (_) => _resetPinch(),
+        child: Stack(
+          children: [
+            if (isCameraInitialized && !isSwitchingCamera)
+              Center(
+                child: SizedBox(
+                  width: screenWidth,
+                  height: cameraHeight,
+                  child: CameraPreview(_controller!),
+                ),
               ),
-            ),
-          if (videoProvider.isGridVisible && isCameraInitialized)
-            Positioned.fill(child: CustomPaint(painter: GridPainter())),
-          if (!videoModalProvider.isModalShown)
-            Positioned(
-              bottom: 35,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  if (!videoProvider.isRecording)
-                    GestureDetector(
-                      onTap: () {
-                        if (videoProvider.lastRecordedThumbnailPath != null) {
-                          Navigator.pushNamed(context, '/gallery');
-                        }
-                      },
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.4),
-                          shape: BoxShape.circle,
-                          image: videoProvider.lastRecordedThumbnailPath != null
-                              ? DecorationImage(
-                                  image: FileImage(
-                                    File(videoProvider
-                                        .lastRecordedThumbnailPath!),
-                                  ),
-                                  fit: BoxFit.cover,
-                                )
+            if (videoProvider.isGridVisible && isCameraInitialized)
+              Positioned.fill(child: CustomPaint(painter: GridPainter())),
+            if (!videoModalProvider.isModalShown)
+              Positioned(
+                bottom: 35,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    if (!videoProvider.isRecording)
+                      GestureDetector(
+                        onTap: () {
+                          if (videoProvider.lastRecordedThumbnailPath != null) {
+                            Navigator.pushNamed(context, '/gallery');
+                          }
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            shape: BoxShape.circle,
+                            image:
+                                videoProvider.lastRecordedThumbnailPath != null
+                                    ? DecorationImage(
+                                        image: FileImage(
+                                          File(videoProvider
+                                              .lastRecordedThumbnailPath!),
+                                        ),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                          ),
+                          child: videoProvider.lastRecordedThumbnailPath == null
+                              ? const Icon(Icons.photo_library,
+                                  color: Colors.white)
                               : null,
                         ),
-                        child: videoProvider.lastRecordedThumbnailPath == null
-                            ? const Icon(Icons.photo_library,
-                                color: Colors.white)
-                            : null,
                       ),
-                    ),
-                  GestureDetector(
-                    onTap: () => videoProvider.isRecording
-                        ? _stopRecording()
-                        : _startRecording(),
-                    child: Container(
-                      width: 70,
-                      height: 70,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: videoProvider.isRecording ? 23 : 22,
-                          height: videoProvider.isRecording ? 23 : 22,
-                          decoration: BoxDecoration(
-                            color: videoProvider.isRecording
-                                ? Colors.black
-                                : Colors.red,
-                            shape: videoProvider.isRecording
-                                ? BoxShape.rectangle
-                                : BoxShape.circle,
-                            borderRadius: videoProvider.isRecording
-                                ? BorderRadius.circular(3)
-                                : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (!videoProvider.isRecording)
                     GestureDetector(
-                      onTap: _toggleCameraLens,
+                      onTap: () => videoProvider.isRecording
+                          ? _stopRecording()
+                          : _startRecording(),
                       child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.4),
+                        width: 70,
+                        height: 70,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
-                          child: SvgPicture.asset(
-                            'lib/assets/icons/flip.svg',
-                            width: 24,
-                            height: 24,
+                          child: Container(
+                            width: videoProvider.isRecording ? 23 : 22,
+                            height: videoProvider.isRecording ? 23 : 22,
+                            decoration: BoxDecoration(
+                              color: videoProvider.isRecording
+                                  ? Colors.black
+                                  : Colors.red,
+                              shape: videoProvider.isRecording
+                                  ? BoxShape.rectangle
+                                  : BoxShape.circle,
+                              borderRadius: videoProvider.isRecording
+                                  ? BorderRadius.circular(3)
+                                  : null,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                ],
+                    if (!videoProvider.isRecording)
+                      GestureDetector(
+                        onTap: _toggleCameraLens,
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.4),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: SvgPicture.asset(
+                              'lib/assets/icons/flip.svg',
+                              width: 24,
+                              height: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          Positioned(
-            bottom: 150,
-            left: 0,
-            right: 0,
-            child: ZoomControl(
-              zoom: _zoomLevel,
-              setZoom: _setZoom,
-            ),
-          ),
-          if (videoModalProvider.isModalShown)
-            SaveVideoModal(
-              onSave: () => _handleSave(videoModalProvider),
-              onDiscard: () => _handleDiscard(videoModalProvider),
-            ),
-        ],
+            if (!videoModalProvider.isModalShown)
+              Positioned(
+                bottom: 150,
+                left: 0,
+                right: 0,
+                child: ZoomControl(
+                  zoom: _zoomLevel,
+                  setZoom: _setZoom,
+                ),
+              ),
+            if (videoModalProvider.isModalShown)
+              SaveVideoModal(
+                onSave: () => _handleSave(videoModalProvider),
+                onDiscard: () => _handleDiscard(videoModalProvider),
+              ),
+          ],
+        ),
       ),
     );
   }
