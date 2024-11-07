@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/services.dart';
 // import 'package:flutter/services.dart';
 import 'package:get_thumbnail_video/index.dart';
 import 'package:get_thumbnail_video/video_thumbnail.dart';
 import 'package:logger/logger.dart';
-import 'package:path_provider/path_provider.dart';
+
+const platform = MethodChannel('com.example.videorecord/storage');
 
 final logger = Logger();
 
@@ -50,7 +52,7 @@ Future<String?> generateThumbnail(String videoUri) async {
 Future<void> playReadyToRecordAudio() async {
   final player = AudioPlayer();
   try {
-    await player.setSource(AssetSource("assets/audio/ready-to-record.mp3"));
+    await player.setSource(AssetSource("lib/assets/audio/ready-to-record.mp3"));
     await player.resume();
   } catch (error) {
     logger.e('Failed to play audio', error: error);
@@ -61,9 +63,10 @@ Future<void> playReadyToRecordAudio() async {
 
 Future<int> checkAvailableStorage() async {
   try {
-    final directory = await getApplicationDocumentsDirectory();
-    final freeSpace = await directory.stat().then((stat) => stat.size);
-    return freeSpace;
+    final int availableStorage =
+        await platform.invokeMethod('getAvailableStorage');
+    logger.i('Available storage: $availableStorage bytes');
+    return availableStorage;
   } catch (error) {
     logger.e('Failed to get storage info', error: error);
     return 0;

@@ -76,6 +76,7 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - lib/assets/icons/
+    - lib/assets/audio/
     - lib/assets/icons/flash-on.svg
     - lib/assets/icons/flash-off.svg
     - lib/assets/icons/grid-on.svg

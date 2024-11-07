@@ -23,12 +23,14 @@ class CameraScreenState extends State<CameraScreen> {
   CameraController? _controller;
   bool isCameraInitialized = false;
   Timer? _timer;
+  Timer? _storageCheckTimer;
   int _recordingTime = 0;
   String? lastRecordedVideoPath;
   bool isSwitchingCamera = false;
   int _currentCameraIndex = 0;
   double _zoomLevel = 1.0;
   double _lastDistance = 0.0;
+  static const int storageThreshold = 50 * 1024 * 1024; // 50 MB threshold
 
   @override
   void initState() {
@@ -122,9 +124,17 @@ class CameraScreenState extends State<CameraScreen> {
     });
   }
 
-  void _startRecording() async {
+  Future<void> _startRecording() async {
     final videoProvider = Provider.of<VideoProvider>(context, listen: false);
     if (!_controller!.value.isInitialized || videoProvider.isRecording) return;
+
+    // Check initial available storage before starting recording
+    int availableStorage = await checkAvailableStorage();
+    if (availableStorage < storageThreshold) {
+      _showSaveVideoModal(
+          "Storage is full, please free up some space to start recording.");
+      return;
+    }
 
     try {
       await _controller?.startVideoRecording();
@@ -140,8 +150,26 @@ class CameraScreenState extends State<CameraScreen> {
           _recordingTime++;
         });
       });
+
+      _storageCheckTimer?.cancel();
+      _storageCheckTimer =
+          Timer.periodic(const Duration(seconds: 3), (timer) async {
+        await _checkStorageDuringRecording();
+      });
     } catch (e) {
       print(e);
+    }
+  }
+
+  Future<void> _checkStorageDuringRecording() async {
+    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+    if (videoProvider.isRecording) {
+      int availableStorage = await checkAvailableStorage();
+      if (availableStorage < storageThreshold) {
+        // Stop recording if storage is insufficient
+        _stopRecording();
+        _showSaveVideoModal("Insufficient Storage Space.\n Recording stopped.");
+      }
     }
   }
 
@@ -160,6 +188,8 @@ class CameraScreenState extends State<CameraScreen> {
         videoProvider.stopRecording();
         _timer?.cancel();
         _timer = null;
+        _storageCheckTimer?.cancel();
+        _storageCheckTimer = null;
         _recordingTime = 0;
       });
     } catch (e) {
@@ -181,7 +211,7 @@ class CameraScreenState extends State<CameraScreen> {
         Provider.of<VideoProvider>(context, listen: false)
             .addVideo(file.path, thumbnailPath);
         Provider.of<VideoProvider>(context, listen: false)
-            .setLastRecordedThumbnail(thumbnailPath); // Save thumbnail path
+            .setLastRecordedThumbnail(thumbnailPath);
       } else {
         Provider.of<VideoProvider>(context, listen: false)
             .addVideo(file.path, 'assets/images/placeholder.png');
@@ -190,25 +220,22 @@ class CameraScreenState extends State<CameraScreen> {
       }
     });
 
-    final videoModalProvider =
-        Provider.of<VideoModalProvider>(context, listen: false);
-    _showSaveVideoModal(videoModalProvider);
+    _showSaveVideoModal(null);
   }
 
-  Future<void> _showSaveVideoModal(
-      VideoModalProvider videoModalProvider) async {
-    if (!mounted ||
-        lastRecordedVideoPath == null ||
-        videoModalProvider.isModalShown) {
-      return;
-    }
-
+  void _showSaveVideoModal(String? message) {
+    final videoModalProvider =
+        Provider.of<VideoModalProvider>(context, listen: false);
     videoModalProvider.showModal();
+    SaveVideoModal(
+      onSave: () => _handleSave(videoModalProvider),
+      onDiscard: () => _handleDiscard(videoModalProvider),
+      message: message,
+    );
   }
 
   void _handleSave(VideoModalProvider videoModalProvider) {
     videoModalProvider.hideModal();
-
     logger.i('Video saved successfully');
   }
 
@@ -454,6 +481,7 @@ class CameraScreenState extends State<CameraScreen> {
   void dispose() {
     _controller?.dispose();
     _timer?.cancel();
+    _storageCheckTimer?.cancel();
     super.dispose();
   }
 }

@@ -4,11 +4,13 @@ import 'package:videorecord/utils/utils.dart';
 class SaveVideoModal extends StatelessWidget {
   final VoidCallback onSave;
   final VoidCallback onDiscard;
+  final String? message;
 
   const SaveVideoModal({
     super.key,
     required this.onSave,
     required this.onDiscard,
+    this.message,
   });
 
   @override
@@ -17,7 +19,8 @@ class SaveVideoModal extends StatelessWidget {
       alignment: Alignment.bottomCenter,
       child: Container(
         margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
-        padding: const EdgeInsets.only(bottom: 30, left:10, right: 10, top: 20),
+        padding:
+            const EdgeInsets.only(bottom: 30, left: 10, right: 10, top: 20),
         decoration: BoxDecoration(
           color: const Color.fromRGBO(18, 18, 18, 0.7),
           borderRadius: BorderRadius.circular(20),
@@ -25,6 +28,25 @@ class SaveVideoModal extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (message != null) ...[
+              const Icon(
+                Icons.warning,
+                color: Color.fromARGB(255, 253, 253, 251),
+                size: 30,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message!,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  decoration: TextDecoration.none,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+            ],
             const Text(
               'Save Take?',
               style: TextStyle(
