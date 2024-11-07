@@ -55,4 +55,12 @@ class VideoProvider with ChangeNotifier {
     _lastRecordedThumbnailPath = thumbnailPath;
     notifyListeners();
   }
+
+  void removeLastVideo() {
+    if (_videos.isNotEmpty && _thumbnails.isNotEmpty) {
+      _videos.removeLast();
+      _thumbnails.removeLast();
+      notifyListeners();
+    }
+  }
 }

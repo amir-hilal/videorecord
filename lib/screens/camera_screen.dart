@@ -243,6 +243,14 @@ class CameraScreenState extends State<CameraScreen> {
 
   void _handleDiscard(VideoModalProvider videoModalProvider) {
     videoModalProvider.hideModal();
+    if (lastRecordedVideoPath != null) {
+      Provider.of<VideoProvider>(context, listen: false).removeLastVideo();
+      final file = File(lastRecordedVideoPath!);
+      if (file.existsSync()) {
+        file.deleteSync();
+      }
+    }
+
     setState(() {
       lastRecordedVideoPath = null;
     });
