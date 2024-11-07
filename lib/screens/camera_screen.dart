@@ -24,6 +24,8 @@ class CameraScreenState extends State<CameraScreen> {
   Timer? _timer;
   int _recordingTime = 0;
   String? lastRecordedVideoPath;
+  bool isSwitchingCamera = false;
+  int _currentCameraIndex = 0;
 
   @override
   void initState() {
@@ -32,17 +34,71 @@ class CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _initializeCamera() async {
-    final cameras = await availableCameras();
-    final selectedCamera = cameras.first;
-    _controller = CameraController(
-      selectedCamera,
-      ResolutionPreset.high,
-      enableAudio: true,
-    );
-    await _controller?.initialize();
     setState(() {
-      isCameraInitialized = true;
+      isCameraInitialized = false;
+      isSwitchingCamera = true;
     });
+
+    try {
+      final cameras = await availableCameras();
+      final selectedCamera = cameras[_currentCameraIndex];
+      _controller = CameraController(
+        selectedCamera,
+        ResolutionPreset.high,
+        enableAudio: true,
+      );
+      await _controller?.initialize();
+      if (!mounted) return;
+
+      setState(() {
+        isCameraInitialized = true;
+        isSwitchingCamera = false;
+      });
+    } catch (e) {
+      logger.e('Error initializing camera', error: e);
+      setState(() {
+        isSwitchingCamera = false;
+      });
+    }
+  }
+
+  Future<void> _toggleCameraLens() async {
+    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+    videoProvider.stopRecording();
+
+    setState(() {
+      isCameraInitialized = false;
+      isSwitchingCamera = true;
+    });
+
+    if (_controller != null) {
+      await _controller?.dispose();
+    }
+
+    try {
+      final cameras = await availableCameras();
+      _currentCameraIndex = (_currentCameraIndex + 1) % cameras.length;
+      final selectedCamera = cameras[_currentCameraIndex];
+
+      _controller = CameraController(
+        selectedCamera,
+        ResolutionPreset.high,
+        enableAudio: true,
+      );
+
+      await _controller?.initialize();
+      if (!mounted) return;
+
+      setState(() {
+        isCameraInitialized = true;
+        isSwitchingCamera = false;
+      });
+    } catch (e) {
+      logger.e('Error initializing camera', error: e);
+      setState(() {
+        isSwitchingCamera = false;
+      });
+    }
   }
 
   void _toggleFlash() {
@@ -59,36 +115,6 @@ class CameraScreenState extends State<CameraScreen> {
       final videoProvider = Provider.of<VideoProvider>(context, listen: false);
       videoProvider.toggleGrid();
     });
-  }
-
-  Future<void> _toggleCameraLens() async {
-    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
-    videoProvider.stopRecording();
-
-    if (_controller != null) {
-      await _controller?.dispose();
-    }
-
-    videoProvider.toggleCameraLens();
-    final cameras = await availableCameras();
-    final selectedCamera = cameras.firstWhere(
-      (camera) => camera.lensDirection == videoProvider.lensDirection,
-    );
-
-    _controller = CameraController(
-      selectedCamera,
-      ResolutionPreset.high,
-      enableAudio: true,
-    );
-
-    try {
-      await _controller?.initialize();
-      setState(() {
-        isCameraInitialized = true;
-      });
-    } catch (e) {
-      logger.e('Error initializing camera', error: e);
-    }
   }
 
   void _startRecording() async {
@@ -173,31 +199,16 @@ class CameraScreenState extends State<CameraScreen> {
     }
 
     videoModalProvider.showModal();
-
-    // Show the modal and await its dismissal.
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return SaveVideoModal(
-          onSave: () => _handleSave(videoModalProvider),
-          onDiscard: () => _handleDiscard(videoModalProvider),
-        );
-      },
-    );
-
-    if (mounted) {
-      videoModalProvider.hideModal();
-    }
   }
 
   void _handleSave(VideoModalProvider videoModalProvider) {
-    Navigator.of(context).pop(); // Close the dialog
+    videoModalProvider.hideModal();
+
     logger.i('Video saved successfully');
   }
 
   void _handleDiscard(VideoModalProvider videoModalProvider) {
-    Navigator.of(context).pop(); // Close the dialog
+    videoModalProvider.hideModal();
     setState(() {
       lastRecordedVideoPath = null;
     });
@@ -288,15 +299,14 @@ class CameraScreenState extends State<CameraScreen> {
       ),
       body: Stack(
         children: [
-          if (isCameraInitialized)
+          if (isCameraInitialized && !isSwitchingCamera)
             Center(
               child: SizedBox(
-                  width: screenWidth,
-                  height: cameraHeight,
-                  child: CameraPreview(_controller!)),
-            )
-          else
-            const Center(child: CircularProgressIndicator()),
+                width: screenWidth,
+                height: cameraHeight,
+                child: CameraPreview(_controller!),
+              ),
+            ),
           if (videoProvider.isGridVisible && isCameraInitialized)
             Positioned.fill(child: CustomPaint(painter: GridPainter())),
           if (!videoModalProvider.isModalShown)
@@ -387,6 +397,11 @@ class CameraScreenState extends State<CameraScreen> {
                     ),
                 ],
               ),
+            ),
+          if (videoModalProvider.isModalShown)
+            SaveVideoModal(
+              onSave: () => _handleSave(videoModalProvider),
+              onDiscard: () => _handleDiscard(videoModalProvider),
             ),
         ],
       ),

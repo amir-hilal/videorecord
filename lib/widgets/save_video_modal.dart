@@ -17,7 +17,7 @@ class SaveVideoModal extends StatelessWidget {
       alignment: Alignment.bottomCenter,
       child: Container(
         margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(bottom: 30, left:10, right: 10, top: 20),
         decoration: BoxDecoration(
           color: const Color.fromRGBO(18, 18, 18, 0.7),
           borderRadius: BorderRadius.circular(20),
