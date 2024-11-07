@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:videorecord/widgets/save_video_modal.dart';
-
+import 'package:videorecord/widgets/zoom_control.dart';
 import '../providers/video_modal_provider.dart';
 import '../providers/video_provider.dart';
 import '../utils/utils.dart';
@@ -26,6 +26,7 @@ class CameraScreenState extends State<CameraScreen> {
   String? lastRecordedVideoPath;
   bool isSwitchingCamera = false;
   int _currentCameraIndex = 0;
+  double _zoomLevel = 1.0;
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class CameraScreenState extends State<CameraScreen> {
         enableAudio: true,
       );
       await _controller?.initialize();
+      await _controller?.setZoomLevel(_zoomLevel);
       if (!mounted) return;
 
       setState(() {
@@ -87,6 +89,7 @@ class CameraScreenState extends State<CameraScreen> {
       );
 
       await _controller?.initialize();
+      await _controller?.setZoomLevel(_zoomLevel);
       if (!mounted) return;
 
       setState(() {
@@ -219,6 +222,13 @@ class CameraScreenState extends State<CameraScreen> {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  void _setZoom(double newZoom) {
+    setState(() {
+      _zoomLevel = newZoom;
+      _controller?.setZoomLevel(newZoom);
+    });
   }
 
   @override
@@ -398,6 +408,15 @@ class CameraScreenState extends State<CameraScreen> {
                 ],
               ),
             ),
+          Positioned(
+            bottom: 150,
+            left: 0,
+            right: 0,
+            child: ZoomControl(
+              zoom: _zoomLevel,
+              setZoom: _setZoom,
+            ),
+          ),
           if (videoModalProvider.isModalShown)
             SaveVideoModal(
               onSave: () => _handleSave(videoModalProvider),

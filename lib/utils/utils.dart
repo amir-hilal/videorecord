@@ -2,12 +2,33 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
+// import 'package:flutter/services.dart';
 import 'package:get_thumbnail_video/index.dart';
 import 'package:get_thumbnail_video/video_thumbnail.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 
 final logger = Logger();
+
+// Future<String?> mirrorVideo(String inputPath) async {
+//   const platform = MethodChannel('com.example.videorecord/video');
+//   final outputPath =
+//       '${inputPath}_mirrored.mp4'; // Corrected the variable definition
+
+//   try {
+//     final result = await platform.invokeMethod<String>(
+//       'mirrorVideo',
+//       {
+//         'inputPath': inputPath,
+//         'outputPath': outputPath,
+//       },
+//     );
+//     return result;
+//   } on PlatformException catch (e) {
+//     print("Failed to mirror video: '${e.message}'.");
+//     return null;
+//   }
+// }
 
 Future<String?> generateThumbnail(String videoUri) async {
   try {
