@@ -3,14 +3,16 @@ import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
-// import 'package:flutter/services.dart';
 import 'package:get_thumbnail_video/index.dart';
 import 'package:get_thumbnail_video/video_thumbnail.dart';
 import 'package:logger/logger.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 const platform = MethodChannel('com.example.videorecord/storage');
 
 final logger = Logger();
+const MethodChannel _mediaChannel =
+    MethodChannel('com.example.videorecord/media');
 
 // Future<String?> mirrorVideo(String inputPath) async {
 //   const platform = MethodChannel('com.example.videorecord/video');
@@ -31,6 +33,21 @@ final logger = Logger();
 //     return null;
 //   }
 // }
+
+Future<void> saveVideoToGalleryNative(String filePath) async {
+  try {
+    // Request permission to write to external storage
+    if (await Permission.storage.request().isGranted) {
+      // Call native method to add video to gallery
+      await _mediaChannel.invokeMethod('addToGallery', {"path": filePath});
+      logger.i('Video added to gallery successfully.');
+    } else {
+      logger.e('Permission to write to storage was denied.');
+    }
+  } catch (e) {
+    logger.e('Failed to save video to gallery: $e');
+  }
+}
 
 Future<String?> generateThumbnail(String videoUri) async {
   try {

@@ -220,7 +220,8 @@ class CameraScreenState extends State<CameraScreen> {
             .setLastRecordedThumbnail('assets/images/placeholder.png');
       }
     });
-
+    
+    await saveVideoToGalleryNative(file.path);
     _showSaveVideoModal(null);
   }
 
