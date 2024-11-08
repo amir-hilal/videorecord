@@ -274,14 +274,22 @@ class CameraScreenState extends State<CameraScreen> {
     });
   }
 
+  double _baseZoomLevel = 1.0;
+
   void _handlePinchZoom(ScaleUpdateDetails details) {
     if (details.pointerCount == 2) {
-      if (_lastDistance != details.scale) {
-        final newZoomLevel =
-            (_zoomLevel + (details.scale - 1) * 0.05).clamp(1.0, 8.0);
-        _setZoom(newZoomLevel);
-        _lastDistance = details.scale;
+      if (_lastDistance == 0.0) {
+        _baseZoomLevel = _zoomLevel;
       }
+
+      const double sensitivityMultiplier =
+          1.5; // Increase for faster zoom sensitivity
+      final adjustedScale = 1.0 + (details.scale - 1.0) * sensitivityMultiplier;
+      final newZoomLevel = (_baseZoomLevel * adjustedScale).clamp(1.0, 8.0);
+
+      _setZoom(newZoomLevel);
+
+      _lastDistance = details.scale;
     }
   }
 
