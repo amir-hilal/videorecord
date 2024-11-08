@@ -31,7 +31,7 @@ class SaveVideoModal extends StatelessWidget {
             if (message != null) ...[
               const Icon(
                 Icons.warning,
-                color: Color.fromARGB(255, 253, 253, 251),
+                color: Color.fromARGB(255, 208, 208, 208),
                 size: 30,
               ),
               const SizedBox(height: 8),
