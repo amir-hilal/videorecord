@@ -141,6 +141,7 @@ class CameraScreenState extends State<CameraScreen> {
     final videoProvider = Provider.of<VideoProvider>(context, listen: false);
     await _controller?.startVideoRecording();
     videoProvider.startRecording();
+    playStartRecordAudio();
     _startTimers();
   }
 
@@ -200,6 +201,7 @@ class CameraScreenState extends State<CameraScreen> {
       if (file != null) {
         await _handleVideoRecorded(file);
       }
+      playStopRecordAudio();
       _updateRecordingStatus(false);
     } catch (e) {
       logger.e("Error while stopping recording: $e");
