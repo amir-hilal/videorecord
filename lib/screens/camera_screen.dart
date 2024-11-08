@@ -354,22 +354,27 @@ class CameraScreenState extends State<CameraScreen> {
                       ),
                       const SizedBox(width: 20),
                       IconButton(
-                        icon: SvgPicture.asset(
-                          videoProvider.isFlashOn
-                              ? 'assets/icons/flash-on.svg'
-                              : 'assets/icons/flash-off.svg',
-                          width: 24,
-                          height: 24,
+                        icon: Opacity(
+                          opacity: _cameraService.isFrontCamera ? 0.5 : 1.0,
+                          child: SvgPicture.asset(
+                            videoProvider.isFlashOn
+                                ? 'assets/icons/flash-on.svg'
+                                : 'assets/icons/flash-off.svg',
+                            width: 24,
+                            height: 24,
+                          ),
                         ),
-                        onPressed: () async {
-                          videoProvider.toggleFlash();
-                          try {
-                            await _cameraService
-                                .toggleFlash(videoProvider.isFlashOn);
-                          } catch (e) {
-                            logger.e('Error toggling flash', error: e);
-                          }
-                        },
+                        onPressed: _cameraService.isFrontCamera
+                            ? null
+                            : () async {
+                                videoProvider.toggleFlash();
+                                try {
+                                  await _cameraService
+                                      .toggleFlash(videoProvider.isFlashOn);
+                                } catch (e) {
+                                  logger.e('Error toggling flash', error: e);
+                                }
+                              },
                       ),
                     ],
                   ),
