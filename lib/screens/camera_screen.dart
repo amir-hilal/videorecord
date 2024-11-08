@@ -4,19 +4,20 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
-import 'package:videorecord/widgets/grid_painter.dart'; // Extracted painter
+import 'package:videorecord/widgets/grid_painter.dart';
 import 'package:videorecord/widgets/save_video_modal.dart';
 import 'package:videorecord/widgets/zoom_control.dart';
 
 import '../providers/video_modal_provider.dart';
 import '../providers/video_provider.dart';
-import '../services/camera_service.dart'; // Service for camera management
+import '../services/camera_service.dart';
 import '../utils/audio_utils.dart';
 import '../utils/storage_utils.dart';
-import '../utils/video_utils.dart'; // Moved utilities to separate files
+import '../utils/video_utils.dart';
 
 final logger = Logger();
 
@@ -40,12 +41,30 @@ class CameraScreenState extends State<CameraScreen> {
   double _lastDistance = 0.0;
   String? _tempThumbnailPath;
   static const int storageThreshold = 50 * 1024 * 1024; // 50 MB threshold
-  final CameraService _cameraService = CameraService(); // Service instance
+  final CameraService _cameraService = CameraService();
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
+    _enableImmersiveMode();
+  }
+
+  void _enableImmersiveMode() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: []); // Hides both status and nav bars
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor:
+            Colors.transparent, // Makes the status bar transparent if shown
+        systemNavigationBarColor: Colors.black, // Color of the nav bar if shown
+      ),
+    );
+  }
+
+  void _disableImmersiveMode() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: SystemUiOverlay.values); // Shows the bars again
   }
 
   Future<void> _initializeCamera() async {
@@ -528,6 +547,7 @@ class CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
+    _disableImmersiveMode();
     _controller?.dispose();
     _stopTimers();
     super.dispose();
