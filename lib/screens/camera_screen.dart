@@ -465,9 +465,13 @@ class CameraScreenState extends State<CameraScreen> {
                     ),
                     if (!videoProvider.isRecording)
                       GestureDetector(
-                        onTap: isSwitchingCamera ? null : _toggleCameraLens,
+                        onTap: (isSwitchingCamera || !isCameraInitialized)
+                            ? null
+                            : _toggleCameraLens,
                         child: Opacity(
-                          opacity: isSwitchingCamera ? 0.5 : 1.0,
+                          opacity: (isSwitchingCamera || !isCameraInitialized)
+                              ? 0.5
+                              : 1.0, 
                           child: Container(
                             width: 45,
                             height: 45,
