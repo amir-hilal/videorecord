@@ -291,9 +291,6 @@ class CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cameraHeight = screenWidth * (16 / 9);
-
     final videoProvider = Provider.of<VideoProvider>(context);
     final videoModalProvider = Provider.of<VideoModalProvider>(context);
 
@@ -301,7 +298,7 @@ class CameraScreenState extends State<CameraScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black.withOpacity(0.5),
         elevation: 0,
-        toolbarHeight: 60,
+        toolbarHeight: 55,
         title: videoModalProvider.isModalShown
             ? null
             : videoProvider.isRecording
@@ -383,131 +380,139 @@ class CameraScreenState extends State<CameraScreen> {
       body: GestureDetector(
         onScaleUpdate: _handlePinchZoom,
         onScaleEnd: (_) => _resetPinch(),
-        child: Stack(
-          children: [
-            if (isCameraInitialized && !isSwitchingCamera)
-              Center(
-                child: SizedBox(
-                  width: screenWidth,
-                  height: cameraHeight,
-                  child: CameraPreview(_controller!),
-                ),
-              ),
-            if (videoProvider.isGridVisible && isCameraInitialized)
-              Positioned.fill(child: CustomPaint(painter: GridPainter())),
-            if (!videoModalProvider.isModalShown)
-              Positioned(
-                bottom: 20,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    if (!videoProvider.isRecording)
-                      GestureDetector(
-                        onTap: () {
-                          if (videoProvider.lastRecordedThumbnailPath != null) {
-                            Navigator.pushNamed(context, '/gallery');
-                          }
-                        },
-                        child: Container(
-                          width: 45,
-                          height: 45,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.4),
-                            shape: BoxShape.circle,
-                            image:
-                                videoProvider.lastRecordedThumbnailPath != null
-                                    ? DecorationImage(
-                                        image: FileImage(
-                                          File(videoProvider
-                                              .lastRecordedThumbnailPath!),
-                                        ),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                          ),
-                          child: videoProvider.lastRecordedThumbnailPath == null
-                              ? const Icon(Icons.photo_library,
-                                  color: Colors.white)
-                              : null,
-                        ),
-                      ),
-                    GestureDetector(
-                      onTap: () => videoProvider.isRecording
-                          ? _stopRecording()
-                          : _startRecording(),
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: videoProvider.isRecording ? 20 : 19,
-                            height: videoProvider.isRecording ? 20 : 19,
-                            decoration: BoxDecoration(
-                              color: videoProvider.isRecording
-                                  ? Colors.black
-                                  : Colors.red,
-                              shape: videoProvider.isRecording
-                                  ? BoxShape.rectangle
-                                  : BoxShape.circle,
-                              borderRadius: videoProvider.isRecording
-                                  ? BorderRadius.circular(3)
+        child: Center(
+          child: AspectRatio(
+            aspectRatio: 9 / 16, // Ensure 9:16 aspect ratio
+            child: Stack(
+              children: [
+                if (isCameraInitialized && !isSwitchingCamera)
+                  CameraPreview(
+                      _controller!), // CameraPreview directly inside AspectRatio
+                if (videoProvider.isGridVisible && isCameraInitialized)
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: GridPainter(),
+                    ),
+                  ),
+                if (!videoModalProvider.isModalShown)
+                  Positioned(
+                    bottom: 20,
+                    left: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        if (!videoProvider.isRecording)
+                          GestureDetector(
+                            onTap: () {
+                              if (videoProvider.lastRecordedThumbnailPath !=
+                                  null) {
+                                Navigator.pushNamed(context, '/gallery');
+                              }
+                            },
+                            child: Container(
+                              width: 45,
+                              height: 45,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.4),
+                                shape: BoxShape.circle,
+                                image:
+                                    videoProvider.lastRecordedThumbnailPath !=
+                                            null
+                                        ? DecorationImage(
+                                            image: FileImage(
+                                              File(videoProvider
+                                                  .lastRecordedThumbnailPath!),
+                                            ),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                              ),
+                              child: videoProvider.lastRecordedThumbnailPath ==
+                                      null
+                                  ? const Icon(Icons.photo_library,
+                                      color: Colors.white)
                                   : null,
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                    if (!videoProvider.isRecording)
-                      GestureDetector(
-                        onTap: (isSwitchingCamera || !isCameraInitialized)
-                            ? null
-                            : _toggleCameraLens,
-                        child: Opacity(
-                          opacity: (isSwitchingCamera || !isCameraInitialized)
-                              ? 0.5
-                              : 1.0, 
+                        GestureDetector(
+                          onTap: () => videoProvider.isRecording
+                              ? _stopRecording()
+                              : _startRecording(),
                           child: Container(
-                            width: 45,
-                            height: 45,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.4),
+                            width: 60,
+                            height: 60,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
                               shape: BoxShape.circle,
                             ),
                             child: Center(
-                              child: SvgPicture.asset(
-                                'assets/icons/flip.svg',
-                                width: 22,
-                                height: 22,
+                              child: Container(
+                                width: videoProvider.isRecording ? 20 : 19,
+                                height: videoProvider.isRecording ? 20 : 19,
+                                decoration: BoxDecoration(
+                                  color: videoProvider.isRecording
+                                      ? Colors.black
+                                      : Colors.red,
+                                  shape: videoProvider.isRecording
+                                      ? BoxShape.rectangle
+                                      : BoxShape.circle,
+                                  borderRadius: videoProvider.isRecording
+                                      ? BorderRadius.circular(3)
+                                      : null,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-            if (!videoModalProvider.isModalShown)
-              Positioned(
-                bottom: 155,
-                left: 0,
-                right: 0,
-                child: ZoomControl(
-                  zoom: _zoomLevel,
-                  setZoom: _setZoom,
-                ),
-              ),
-            if (videoModalProvider.isModalShown)
-              SaveVideoModal(
-                onSave: () => _handleSave(videoModalProvider),
-                onDiscard: () => _handleDiscard(videoModalProvider),
-              ),
-          ],
+                        if (!videoProvider.isRecording)
+                          GestureDetector(
+                            onTap: (isSwitchingCamera || !isCameraInitialized)
+                                ? null
+                                : _toggleCameraLens,
+                            child: Opacity(
+                              opacity:
+                                  (isSwitchingCamera || !isCameraInitialized)
+                                      ? 0.5
+                                      : 1.0,
+                              child: Container(
+                                width: 45,
+                                height: 45,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.4),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: SvgPicture.asset(
+                                    'assets/icons/flip.svg',
+                                    width: 22,
+                                    height: 22,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                if (!videoModalProvider.isModalShown)
+                  Positioned(
+                    bottom: 155,
+                    left: 0,
+                    right: 0,
+                    child: ZoomControl(
+                      zoom: _zoomLevel,
+                      setZoom: _setZoom,
+                    ),
+                  ),
+                if (videoModalProvider.isModalShown)
+                  SaveVideoModal(
+                    onSave: () => _handleSave(videoModalProvider),
+                    onDiscard: () => _handleDiscard(videoModalProvider),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
