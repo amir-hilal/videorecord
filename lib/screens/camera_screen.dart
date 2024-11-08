@@ -460,19 +460,22 @@ class CameraScreenState extends State<CameraScreen> {
                     ),
                     if (!videoProvider.isRecording)
                       GestureDetector(
-                        onTap: _toggleCameraLens,
-                        child: Container(
-                          width: 45,
-                          height: 45,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.4),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/flip.svg',
-                              width: 22,
-                              height: 22,
+                        onTap: isSwitchingCamera ? null : _toggleCameraLens,
+                        child: Opacity(
+                          opacity: isSwitchingCamera ? 0.5 : 1.0,
+                          child: Container(
+                            width: 45,
+                            height: 45,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.4),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: SvgPicture.asset(
+                                'assets/icons/flip.svg',
+                                width: 22,
+                                height: 22,
+                              ),
                             ),
                           ),
                         ),
