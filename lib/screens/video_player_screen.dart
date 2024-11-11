@@ -121,12 +121,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 _formatDuration(_controller.value.duration),
                 style: const TextStyle(color: Colors.white),
               ),
-              IconButton(
-                icon: const Icon(Icons.fullscreen, color: Colors.white),
-                onPressed: () {
-                  // Fullscreen functionality here (if needed)
-                },
-              ),
             ],
           ),
         ),

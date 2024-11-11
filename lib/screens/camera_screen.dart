@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logger/logger.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:videorecord/widgets/grid_painter.dart';
 import 'package:videorecord/widgets/save_video_modal.dart';
@@ -42,6 +43,11 @@ class CameraScreenState extends State<CameraScreen> {
   String? _tempThumbnailPath;
   static const int storageThreshold = 50 * 1024 * 1024; // 50 MB threshold
   final CameraService _cameraService = CameraService();
+
+  int _retryCount = 0; // Counter for retry attempts
+  static const int _maxRetryAttempts = 3; // Maximum retry attempts
+  static const Duration _retryDelay =
+      Duration(seconds: 2); // Delay between retries
 
   @override
   void initState() {
@@ -81,6 +87,7 @@ class CameraScreenState extends State<CameraScreen> {
         _controller = _cameraService.controller;
         isCameraInitialized = true;
         isSwitchingCamera = false;
+        _retryCount = 0;
       });
     } catch (e) {
       _handleCameraError(e);
@@ -92,6 +99,25 @@ class CameraScreenState extends State<CameraScreen> {
     setState(() {
       isSwitchingCamera = false;
     });
+
+    if (_retryCount < _maxRetryAttempts) {
+      _retryCount++;
+      logger.w(
+          'Retrying camera initialization ($_retryCount/$_maxRetryAttempts)...');
+      Future.delayed(_retryDelay, _initializeCamera);
+    } else {
+      logger
+          .e('Camera failed to initialize after $_maxRetryAttempts attempts.');
+      // You can show a message to the user here if desired
+      _showInitializationError();
+    }
+  }
+
+  void _showInitializationError() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text("Failed to initialize camera after several attempts.")),
+    );
   }
 
   Future<void> _toggleCameraLens() async {
@@ -244,16 +270,27 @@ class CameraScreenState extends State<CameraScreen> {
     });
   }
 
-  void _handleSave(VideoModalProvider videoModalProvider) {
+  Future<void> _handleSave(VideoModalProvider videoModalProvider) async {
     videoModalProvider.hideModal();
+
+    bool permissionGranted = await _requestStoragePermission();
+    if (!permissionGranted) {
+      logger.e('Storage permission not granted.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Storage permission is required to save the video.")),
+      );
+      return;
+    }
 
     if (lastRecordedVideoPath != null) {
       saveVideoToGalleryNative(lastRecordedVideoPath!).then((_) {
         logger.i('Video saved successfully');
 
         Provider.of<VideoProvider>(context, listen: false).addVideo(
-            lastRecordedVideoPath!,
-            _tempThumbnailPath ?? 'assets/images/placeholder.png');
+          lastRecordedVideoPath!,
+          _tempThumbnailPath ?? 'assets/images/placeholder.png',
+        );
 
         playReadyToRecordAudio();
       }).catchError((e) {
@@ -262,6 +299,14 @@ class CameraScreenState extends State<CameraScreen> {
     } else {
       logger.e('No video path available to save');
     }
+  }
+
+  Future<bool> _requestStoragePermission() async {
+    if (await Permission.storage.isGranted) {
+      return true;
+    }
+    final status = await Permission.storage.request();
+    return status.isGranted;
   }
 
   void _handleDiscard(VideoModalProvider videoModalProvider) {

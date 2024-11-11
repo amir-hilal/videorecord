@@ -16,6 +16,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.channels.FileChannel
+import android.util.Log
 
 class MainActivity : FlutterActivity() {
     private val STORAGE_CHANNEL = "com.example.videorecord/storage"
@@ -68,35 +69,49 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun addVideoToGallery(path: String, result: MethodChannel.Result) {
-        try {
-            val file = File(path)
-            val dcimDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Camera")
+        val directories = listOf(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        )
 
-            if (!dcimDir.exists()) {
-                dcimDir.mkdirs()
-            }
+        for (dir in directories) {
+            try {
+                val file = File(path)
+                val saveDir = File(dir, "Camera") // Attempt to save in Camera folder within each directory
 
-            val newFile = File(dcimDir, file.name)
-
-            // Copy the video to the DCIM/Camera directory
-            copyFile(file, newFile)
-
-            // Notify the media scanner to index the new file
-            MediaScannerConnection.scanFile(
-                this,
-                arrayOf(newFile.absolutePath),
-                arrayOf("video/mp4")
-            ) { scannedPath, uri ->
-                if (uri != null) {
-                    result.success("Video added to gallery at: $scannedPath")
-                } else {
-                    result.error("FAILED", "Failed to add video to gallery", null)
+                if (!saveDir.exists()) {
+                    saveDir.mkdirs()
                 }
+
+                val newFile = File(saveDir, file.name)
+
+                // Copy the video to the target directory
+                copyFile(file, newFile)
+
+                // Notify the media scanner to index the new file
+                MediaScannerConnection.scanFile(
+                    this,
+                    arrayOf(newFile.absolutePath),
+                    arrayOf("video/mp4")
+                ) { scannedPath, uri ->
+                    if (uri != null) {
+                        result.success("Video added to gallery at: $scannedPath")
+                    } else {
+                        result.error("FAILED", "Failed to add video to gallery", null)
+                    }
+                }
+
+                return // Exit if saving and scanning succeed
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Log the failure for debugging purposes, and continue to the next directory if this one fails
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            result.error("FAILED", "Error adding video to gallery: ${e.message}", null)
         }
+
+        // If all directories fail
+        result.error("FAILED", "Failed to add video to any gallery directory", null)
     }
 
     private fun copyFile(sourceFile: File, destFile: File) {
