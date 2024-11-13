@@ -9,6 +9,7 @@ import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:videorecord/services/permission_service.dart';
 import 'package:videorecord/utils/immersive_mode_utils.dart'; // Import the new utility file
+import 'package:videorecord/utils/zoom_utils.dart';
 import 'package:videorecord/widgets/grid_painter.dart';
 import 'package:videorecord/widgets/save_video_modal.dart';
 import 'package:videorecord/widgets/zoom_control.dart';
@@ -40,6 +41,7 @@ class CameraScreenState extends State<CameraScreen> {
   int _currentCameraIndex = 0;
   double _zoomLevel = 1.0;
   double _lastDistance = 0.0;
+  double _baseZoomLevel = 1.0;
   String? _tempThumbnailPath;
   static const int storageThreshold = 50 * 1024 * 1024; // 50 MB threshold
   final CameraService _cameraService = CameraService();
@@ -324,31 +326,24 @@ class CameraScreenState extends State<CameraScreen> {
   void _setZoom(double newZoom) {
     setState(() {
       _zoomLevel = newZoom;
-      _controller?.setZoomLevel(newZoom);
+      if (_controller != null) {
+        setZoom(_controller!, newZoom);
+      }
     });
   }
 
-  double _baseZoomLevel = 1.0;
 
   void _handlePinchZoom(ScaleUpdateDetails details) {
-    if (details.pointerCount == 2) {
-      if (_lastDistance == 0.0) {
-        _baseZoomLevel = _zoomLevel;
-      }
-
-      const double sensitivityMultiplier =
-          1.5; // Increase for faster zoom sensitivity
-      final adjustedScale = 1.0 + (details.scale - 1.0) * sensitivityMultiplier;
-      final newZoomLevel = (_baseZoomLevel * adjustedScale).clamp(1.0, 8.0);
-
-      _setZoom(newZoomLevel);
-
-      _lastDistance = details.scale;
+    if (_lastDistance == 0.0) {
+      _baseZoomLevel = _zoomLevel;
     }
+    final newZoomLevel = handlePinchZoom(details, _baseZoomLevel, _zoomLevel);
+    _setZoom(newZoomLevel);
+    _lastDistance = details.scale;
   }
 
   void _resetPinch() {
-    _lastDistance = 0.0;
+    _lastDistance = resetPinch();
   }
 
   @override
