@@ -164,9 +164,10 @@ class CameraScreenState extends State<CameraScreen> {
 
   Future<void> _prepareRecording() async {
     final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+    await playStartRecordAudio();
+    await Future.delayed(const Duration(milliseconds: 500));
     await _controller?.startVideoRecording();
     videoProvider.startRecording();
-    playStartRecordAudio();
     _startTimers();
   }
 
