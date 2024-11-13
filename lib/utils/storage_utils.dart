@@ -1,20 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 
 final logger = Logger();
+
 const MethodChannel _mediaChannel =
     MethodChannel('com.example.videorecord/media');
 
 Future<void> saveVideoToGalleryNative(String filePath) async {
   try {
-    // if (await Permission.storage.request().isGranted) {
     await _mediaChannel.invokeMethod('addToGallery', {"path": filePath});
     logger.i('Video added to gallery successfully.');
-    // } else {
-    // logger.e('Permission to write to storage was denied.');
-    // }
   } catch (e) {
     logger.e('Failed to save video to gallery: $e');
   }
@@ -29,6 +27,19 @@ Future<int> checkAvailableStorage() async {
     return availableStorage;
   } catch (error) {
     logger.e('Failed to get storage info', error: error);
+    return 0;
+  }
+}
+
+const platform = MethodChannel('com.example.videorecord/storage');
+
+Future<int> getRecordedVideoSize(String videoUri) async {
+  try {
+    final file = File(videoUri);
+    final size = await file.length();
+    return size;
+  } catch (error) {
+    logger.e('Failed to get video file size', error: error);
     return 0;
   }
 }
