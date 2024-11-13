@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
@@ -7,12 +8,13 @@ class VideoPlayerScreen extends StatefulWidget {
   const VideoPlayerScreen({super.key, required this.videoUrl});
 
   @override
-  _VideoPlayerScreenState createState() => _VideoPlayerScreenState();
+  VideoPlayerScreenState createState() => VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+class VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late VideoPlayerController _controller;
-  bool _isControlsVisible = true; // To show/hide controls on tap
+  bool _isControlsVisible = true;
+  final logger = Logger();
 
   @override
   void initState() {
@@ -54,15 +56,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         child: _controller.value.isInitialized
             ? GestureDetector(
                 onTap: _toggleControls, // Toggle controls on tap
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    AspectRatio(
-                      aspectRatio: _controller.value.aspectRatio,
-                      child: VideoPlayer(_controller),
-                    ),
-                    if (_isControlsVisible) _buildControls(), // Show controls
-                  ],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: constraints.maxWidth,
+                          height: constraints.maxWidth /
+                              _controller.value.aspectRatio,
+                          child: VideoPlayer(_controller),
+                        ),
+                        if (_isControlsVisible)
+                          _buildControls(), // Show controls
+                      ],
+                    );
+                  },
                 ),
               )
             : const CircularProgressIndicator(),

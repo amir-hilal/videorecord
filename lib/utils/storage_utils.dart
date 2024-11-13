@@ -1,6 +1,6 @@
 import 'dart:async';
+
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:logger/logger.dart';
 
 final logger = Logger();
@@ -9,12 +9,12 @@ const MethodChannel _mediaChannel =
 
 Future<void> saveVideoToGalleryNative(String filePath) async {
   try {
-    if (await Permission.storage.request().isGranted) {
-      await _mediaChannel.invokeMethod('addToGallery', {"path": filePath});
-      logger.i('Video added to gallery successfully.');
-    } else {
-      logger.e('Permission to write to storage was denied.');
-    }
+    // if (await Permission.storage.request().isGranted) {
+    await _mediaChannel.invokeMethod('addToGallery', {"path": filePath});
+    logger.i('Video added to gallery successfully.');
+    // } else {
+    // logger.e('Permission to write to storage was denied.');
+    // }
   } catch (e) {
     logger.e('Failed to save video to gallery: $e');
   }

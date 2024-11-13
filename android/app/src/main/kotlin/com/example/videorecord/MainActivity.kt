@@ -78,7 +78,7 @@ class MainActivity : FlutterActivity() {
         for (dir in directories) {
             try {
                 val file = File(path)
-                val saveDir = File(dir, "Camera") // Attempt to save in Camera folder within each directory
+                val saveDir = File(dir, "VideoCamera") // Attempt to save in Camera folder within each directory
 
                 if (!saveDir.exists()) {
                     saveDir.mkdirs()

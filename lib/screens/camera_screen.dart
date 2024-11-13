@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logger/logger.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:videorecord/services/permission_service.dart';
 import 'package:videorecord/widgets/grid_painter.dart';
 import 'package:videorecord/widgets/save_video_modal.dart';
 import 'package:videorecord/widgets/zoom_control.dart';
@@ -44,16 +44,30 @@ class CameraScreenState extends State<CameraScreen> {
   static const int storageThreshold = 50 * 1024 * 1024; // 50 MB threshold
   final CameraService _cameraService = CameraService();
 
-  int _retryCount = 0; // Counter for retry attempts
-  static const int _maxRetryAttempts = 3; // Maximum retry attempts
-  static const Duration _retryDelay =
-      Duration(seconds: 2); // Delay between retries
+  int _retryCount = 0;
+  static const int _maxRetryAttempts = 3;
+  static const Duration _retryDelay = Duration(seconds: 2);
 
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    _requestPermissionsAndInitialize();
     _enableImmersiveMode();
+  }
+
+  Future<void> _requestPermissionsAndInitialize() async {
+    bool permissionsGranted = await PermissionService.requestPermissions();
+    if (permissionsGranted) {
+      _initializeCamera();
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              "Storage, camera, or microphone permissions are required to use this app."),
+        ),
+      );
+    }
   }
 
   void _enableImmersiveMode() {
@@ -108,7 +122,6 @@ class CameraScreenState extends State<CameraScreen> {
     } else {
       logger
           .e('Camera failed to initialize after $_maxRetryAttempts attempts.');
-      // You can show a message to the user here if desired
       _showInitializationError();
     }
   }
@@ -273,9 +286,9 @@ class CameraScreenState extends State<CameraScreen> {
   Future<void> _handleSave(VideoModalProvider videoModalProvider) async {
     videoModalProvider.hideModal();
 
-    bool permissionGranted = await _requestStoragePermission();
-    if (!permissionGranted) {
+    if (!await PermissionService.isStoragePermissionGranted()) {
       logger.e('Storage permission not granted.');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text("Storage permission is required to save the video.")),
@@ -286,7 +299,7 @@ class CameraScreenState extends State<CameraScreen> {
     if (lastRecordedVideoPath != null) {
       saveVideoToGalleryNative(lastRecordedVideoPath!).then((_) {
         logger.i('Video saved successfully');
-
+        if (!mounted) return;
         Provider.of<VideoProvider>(context, listen: false).addVideo(
           lastRecordedVideoPath!,
           _tempThumbnailPath ?? 'assets/images/placeholder.png',
@@ -299,14 +312,6 @@ class CameraScreenState extends State<CameraScreen> {
     } else {
       logger.e('No video path available to save');
     }
-  }
-
-  Future<bool> _requestStoragePermission() async {
-    if (await Permission.storage.isGranted) {
-      return true;
-    }
-    final status = await Permission.storage.request();
-    return status.isGranted;
   }
 
   void _handleDiscard(VideoModalProvider videoModalProvider) {
@@ -460,8 +465,7 @@ class CameraScreenState extends State<CameraScreen> {
             child: Stack(
               children: [
                 if (isCameraInitialized && !isSwitchingCamera)
-                  CameraPreview(
-                      _controller!), // CameraPreview directly inside AspectRatio
+                  CameraPreview(_controller!),
                 if (videoProvider.isGridVisible && isCameraInitialized)
                   Positioned.fill(
                     child: CustomPaint(
