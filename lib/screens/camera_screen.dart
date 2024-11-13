@@ -4,12 +4,12 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:videorecord/services/permission_service.dart';
 import 'package:videorecord/utils/immersive_mode_utils.dart';
 import 'package:videorecord/utils/zoom_utils.dart';
+import 'package:videorecord/widgets/camera_app_bar.dart';
 import 'package:videorecord/widgets/camera_controls.dart';
 import 'package:videorecord/widgets/grid_painter.dart';
 import 'package:videorecord/widgets/save_video_modal.dart';
@@ -352,87 +352,14 @@ class CameraScreenState extends State<CameraScreen> {
     final videoModalProvider = Provider.of<VideoModalProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(0.5),
-        elevation: 0,
-        toolbarHeight: 55,
-        title: videoModalProvider.isModalShown
-            ? null
-            : videoProvider.isRecording
-                ? Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Recording',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _formatRecordingTime(_recordingTime),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: SvgPicture.asset(
-                          videoProvider.isGridVisible
-                              ? 'assets/icons/grid-on.svg'
-                              : 'assets/icons/grid-off.svg',
-                          width: 24,
-                          height: 24,
-                        ),
-                        onPressed: () =>
-                            Provider.of<VideoProvider>(context, listen: false)
-                                .toggleGrid(),
-                      ),
-                      const SizedBox(width: 20),
-                      IconButton(
-                        icon: Opacity(
-                          opacity: _cameraService.isFrontCamera ? 0.5 : 1.0,
-                          child: SvgPicture.asset(
-                            videoProvider.isFlashOn
-                                ? 'assets/icons/flash-on.svg'
-                                : 'assets/icons/flash-off.svg',
-                            width: 24,
-                            height: 24,
-                          ),
-                        ),
-                        onPressed: _cameraService.isFrontCamera
-                            ? null
-                            : () async {
-                                videoProvider.toggleFlash();
-                                try {
-                                  await _cameraService
-                                      .toggleFlash(videoProvider.isFlashOn);
-                                } catch (e) {
-                                  logger.e('Error toggling flash', error: e);
-                                }
-                              },
-                      ),
-                    ],
-                  ),
-        automaticallyImplyLeading: false,
+      appBar: CameraAppBar(
+        recordingTime: _recordingTime,
+        cameraService: _cameraService,
+        toggleGrid: () =>
+            Provider.of<VideoProvider>(context, listen: false).toggleGrid(),
+        toggleFlash: () =>
+            Provider.of<VideoProvider>(context, listen: false).toggleFlash(),
+        formatRecordingTime: _formatRecordingTime,
       ),
       body: GestureDetector(
         onScaleUpdate: _handlePinchZoom,
