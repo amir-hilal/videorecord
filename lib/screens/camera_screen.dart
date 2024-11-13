@@ -4,11 +4,11 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:videorecord/services/permission_service.dart';
+import 'package:videorecord/utils/immersive_mode_utils.dart'; // Import the new utility file
 import 'package:videorecord/widgets/grid_painter.dart';
 import 'package:videorecord/widgets/save_video_modal.dart';
 import 'package:videorecord/widgets/zoom_control.dart';
@@ -52,7 +52,7 @@ class CameraScreenState extends State<CameraScreen> {
   void initState() {
     super.initState();
     _requestPermissionsAndInitialize();
-    _enableImmersiveMode();
+    enableImmersiveMode();
   }
 
   Future<void> _requestPermissionsAndInitialize() async {
@@ -68,23 +68,6 @@ class CameraScreenState extends State<CameraScreen> {
         ),
       );
     }
-  }
-
-  void _enableImmersiveMode() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-        overlays: []); // Hides both status and nav bars
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor:
-            Colors.transparent, // Makes the status bar transparent if shown
-        systemNavigationBarColor: Colors.black, // Color of the nav bar if shown
-      ),
-    );
-  }
-
-  void _disableImmersiveMode() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-        overlays: SystemUiOverlay.values); // Shows the bars again
   }
 
   Future<void> _initializeCamera() async {
@@ -598,7 +581,7 @@ class CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
-    _disableImmersiveMode();
+    disableImmersiveMode();
     _controller?.dispose();
     _stopTimers();
     super.dispose();

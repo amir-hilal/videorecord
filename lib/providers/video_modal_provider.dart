@@ -1,4 +1,4 @@
-//video_modal_provider.dart
+//lib/providers/video_modal_provider.dart
 
 import 'package:flutter/material.dart';
 import 'package:videorecord/utils/audio_utils.dart';

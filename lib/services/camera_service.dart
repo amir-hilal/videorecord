@@ -1,3 +1,5 @@
+//lib/services/camera_service.dart
+
 import 'package:camera/camera.dart';
 import 'package:logger/logger.dart';
 
