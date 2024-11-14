@@ -18,10 +18,11 @@ class VideoProvider with ChangeNotifier {
   CameraLensDirection get lensDirection => _lensDirection;
   String? get lastRecordedThumbnailPath => _lastRecordedThumbnailPath;
 
-  // Add a video and update the last recorded thumbnail
   void addVideo(String videoUri, String thumbnailUri) {
-    _videos.add(VideoData(videoUrl: videoUri, thumbnailUrl: thumbnailUri));
+    _videos.insert(
+        0, VideoData(videoUrl: videoUri, thumbnailUrl: thumbnailUri));
     _updateLastRecordedThumbnail(thumbnailUri);
+    notifyListeners();
   }
 
   // Start video recording
@@ -48,9 +49,6 @@ class VideoProvider with ChangeNotifier {
   void setLastRecordedThumbnail(String thumbnailPath) {
     _updateLastRecordedThumbnail(thumbnailPath);
   }
-
-  // Remove the last video from the list
-
 
   // Clear the last recorded thumbnail
   void clearLastRecordedThumbnail() {
