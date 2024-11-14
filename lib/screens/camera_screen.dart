@@ -8,6 +8,7 @@ import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:videorecord/services/permission_service.dart';
 import 'package:videorecord/utils/immersive_mode_utils.dart';
+import 'package:videorecord/utils/timers_util.dart';
 import 'package:videorecord/utils/zoom_utils.dart';
 import 'package:videorecord/widgets/camera_app_bar.dart';
 import 'package:videorecord/widgets/camera_controls.dart';
@@ -33,9 +34,9 @@ class CameraScreen extends StatefulWidget {
 
 class CameraScreenState extends State<CameraScreen> {
   CameraController? _controller;
+  final TimerUtils _timerUtils = TimerUtils();
+
   bool isCameraInitialized = false;
-  Timer? _timer;
-  Timer? _storageCheckTimer;
   int _recordingTime = 0;
   String? lastRecordedVideoPath;
   bool isSwitchingCamera = false;
@@ -184,25 +185,18 @@ class CameraScreenState extends State<CameraScreen> {
   }
 
   void _startTimers() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _recordingTime++;
-      });
-    });
-
-    _storageCheckTimer?.cancel();
-    _storageCheckTimer =
-        Timer.periodic(const Duration(seconds: 3), (timer) async {
-      await _checkStorageDuringRecording();
-    });
+    _timerUtils.startTimers(
+      onRecordingTick: () {
+        setState(() {
+          _recordingTime++;
+        });
+      },
+      onStorageCheck: _checkStorageDuringRecording,
+    );
   }
 
   void _stopTimers() {
-    _timer?.cancel();
-    _timer = null;
-    _storageCheckTimer?.cancel();
-    _storageCheckTimer = null;
+    _timerUtils.stopTimers();
   }
 
   Future<void> _checkStorageDuringRecording() async {
@@ -414,7 +408,7 @@ class CameraScreenState extends State<CameraScreen> {
   void dispose() {
     disableImmersiveMode();
     _controller?.dispose();
-    _stopTimers();
+    _timerUtils.stopTimers();
     super.dispose();
   }
 }
