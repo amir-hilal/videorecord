@@ -8,10 +8,10 @@ class VideoPlayerScreen extends StatefulWidget {
   const VideoPlayerScreen({super.key, required this.videoUrl});
 
   @override
-  _VideoPlayerScreenState createState() => _VideoPlayerScreenState();
+  VideoPlayerScreenState createState() => VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+class VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late VideoPlayerController _videoPlayerController;
   ChewieController? _chewieController;
 
