@@ -13,6 +13,7 @@ class VideoPlayerScreen extends StatefulWidget {
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late VideoPlayerController _videoPlayerController;
   bool _isPlaying = false;
+  bool _showControls = false;
 
   @override
   void initState() {
@@ -50,6 +51,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     });
   }
 
+  void _toggleControls() {
+    setState(() {
+      _showControls = !_showControls;
+    });
+    if (_showControls) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (_showControls) {
+          setState(() {
+            _showControls = false;
+          });
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Get device dimensions
@@ -63,35 +79,107 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       body: Center(
         child: _videoPlayerController.value.isInitialized
             ? GestureDetector(
-                onTap: _togglePlayPause,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Video Player
-                    SizedBox(
-                      height: deviceHeight/2,
-                      width: deviceWidth/2,
-                      child: FittedBox(
-                        fit: BoxFit.cover, 
-                        child: SizedBox(
-                          width: _videoPlayerController.value.size.width,
-                          height: _videoPlayerController.value.size.height,
-                          child: VideoPlayer(_videoPlayerController),
+                onTap: _toggleControls,
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color:
+                      Colors.transparent, // Ensure the gesture area is active
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Video Player
+                      SizedBox(
+                        height: deviceHeight / 2,
+                        width: deviceWidth / 2,
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _videoPlayerController.value.size.width,
+                            height: _videoPlayerController.value.size.height,
+                            child: VideoPlayer(_videoPlayerController),
+                          ),
                         ),
                       ),
-                    ),
-                    // Play/Pause Icon Overlay
-                    if (!_isPlaying)
-                      Icon(
-                        Icons.play_circle_filled,
-                        color: Colors.white.withOpacity(0.7),
-                        size: 80,
-                      ),
-                  ],
+                      // Middle Play/Pause Button
+                      if (_showControls)
+                        Center(
+                          child: GestureDetector(
+                            onTap: _togglePlayPause,
+                            child: Icon(
+                              _isPlaying
+                                  ? Icons.pause_circle_filled
+                                  : Icons.play_circle_filled,
+                              color: Colors.white.withOpacity(0.7),
+                              size: 80,
+                            ),
+                          ),
+                        ),
+                      // Bottom Controls
+                      if (_showControls)
+                        Positioned(
+                          bottom: 20,
+                          left: 20,
+                          right: 20,
+                          child: Column(
+                            children: [
+                              // Progress Bar and Time
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _formatDuration(
+                                        _videoPlayerController.value.position),
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                  const SizedBox(
+                                      width:
+                                          10), // Left margin for the progress bar
+                                  Expanded(
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(
+                                          horizontal:
+                                              10), // Add margin on both sides
+                                      child: VideoProgressIndicator(
+                                        _videoPlayerController,
+                                        allowScrubbing: true,
+                                        colors: const VideoProgressColors(
+                                          playedColor: Color.fromARGB(202, 50, 165, 203),
+                                          bufferedColor: Colors.grey,
+                                          backgroundColor: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                      width:
+                                          10), // Right margin for the progress bar
+                                  Text(
+                                    _formatDuration(
+                                        _videoPlayerController.value.duration),
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              // Additional Controls
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               )
             : const CircularProgressIndicator(),
       ),
     );
+  }
+
+  String _formatDuration(Duration position) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final String minutes = twoDigits(position.inMinutes.remainder(60));
+    final String seconds = twoDigits(position.inSeconds.remainder(60));
+    return "$minutes:$seconds";
   }
 }
