@@ -60,7 +60,7 @@ import Photos
     }
 
     // Save video to Photos Library
-    private func addVideoToGallery(path: String, result: FlutterResult) {
+    private func addVideoToGallery(path: String, result: @escaping FlutterResult) {
         let fileURL = URL(fileURLWithPath: path)
 
         // Ensure the file exists
