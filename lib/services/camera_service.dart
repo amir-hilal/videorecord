@@ -21,8 +21,9 @@ class CameraService {
       }
       _currentCamera = cameras[cameraIndex];
       _controller = CameraController(
+        
         _currentCamera!,
-        ResolutionPreset.high,
+        ResolutionPreset.veryHigh,
         enableAudio: true,
       );
       await _controller!.initialize();
