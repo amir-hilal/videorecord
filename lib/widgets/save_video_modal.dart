@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:videorecord/utils/storage_utils.dart';
+import 'package:shootsolo/utils/storage_utils.dart';
 
 class SaveVideoModal extends StatelessWidget {
   final VoidCallback onSave;

@@ -1,7 +1,7 @@
 //lib/providers/video_modal_provider.dart
 
 import 'package:flutter/material.dart';
-import 'package:videorecord/utils/audio_utils.dart';
+import 'package:shootsolo/utils/audio_utils.dart';
 
 class VideoModalProvider with ChangeNotifier {
   bool _isModalShown = false;
