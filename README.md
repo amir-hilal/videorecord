@@ -1,4 +1,4 @@
-# videorecord
+# Shootsolo
 
 A new Flutter project.
 

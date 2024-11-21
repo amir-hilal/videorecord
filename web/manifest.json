@@ -1,6 +1,6 @@
 {
-    "name": "videorecord",
-    "short_name": "videorecord",
+    "name": "shootsolo",
+    "short_name": "shootsolo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

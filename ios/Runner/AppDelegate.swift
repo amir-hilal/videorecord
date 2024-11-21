@@ -4,8 +4,8 @@ import Photos
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
-    private let STORAGE_CHANNEL = "com.example.videorecord/storage"
-    private let MEDIA_CHANNEL = "com.example.videorecord/media"
+    private let STORAGE_CHANNEL = "com.voidkillerstudios.shootsolo/storage"
+    private let MEDIA_CHANNEL = "com.voidkillerstudios.shootsolo/media"
 
     override func application(
         _ application: UIApplication,
