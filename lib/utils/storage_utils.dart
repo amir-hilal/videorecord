@@ -7,7 +7,7 @@ import 'package:logger/logger.dart';
 final logger = Logger();
 
 const MethodChannel _mediaChannel =
-    MethodChannel('com.example.videorecord/media');
+    MethodChannel('com.productra.shootsolo/media');
 
 Future<void> saveVideoToGalleryNative(String filePath) async {
   try {
@@ -20,7 +20,7 @@ Future<void> saveVideoToGalleryNative(String filePath) async {
 
 Future<int> checkAvailableStorage() async {
   try {
-    const platform = MethodChannel('com.example.videorecord/storage');
+    const platform = MethodChannel('com.productra.shootsolo/storage');
     final int availableStorage =
         await platform.invokeMethod('getAvailableStorage');
     logger.i('Available storage: $availableStorage bytes');
@@ -31,7 +31,7 @@ Future<int> checkAvailableStorage() async {
   }
 }
 
-const platform = MethodChannel('com.example.videorecord/storage');
+const platform = MethodChannel('com.productra.shootsolo/storage');
 
 Future<int> getRecordedVideoSize(String videoUri) async {
   try {
