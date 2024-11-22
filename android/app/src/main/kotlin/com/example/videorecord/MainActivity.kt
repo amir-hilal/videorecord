@@ -1,4 +1,4 @@
-package com.example.videorecord
+package com.productra.shootsolo
 
 
 import android.content.ContentValues
@@ -19,8 +19,8 @@ import java.nio.channels.FileChannel
 import android.util.Log
 
 class MainActivity : FlutterActivity() {
-    private val STORAGE_CHANNEL = "com.example.videorecord/storage"
-    private val MEDIA_CHANNEL = "com.example.videorecord/media"
+    private val STORAGE_CHANNEL = "com.productra.shootsolo/storage"
+    private val MEDIA_CHANNEL = "com.productra.shootsolo/media"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
