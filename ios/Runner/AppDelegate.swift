@@ -11,11 +11,14 @@ import Photos
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        let controller = window?.rootViewController as! FlutterViewController
+        guard let controller = window?.rootViewController as? FlutterViewController else {
+            fatalError("rootViewController is not a FlutterViewController")
+        }
 
         // Storage Channel Handler
         let storageChannel = FlutterMethodChannel(name: STORAGE_CHANNEL, binaryMessenger: controller.binaryMessenger)
-        storageChannel.setMethodCallHandler { (call, result) in
+        storageChannel.setMethodCallHandler { [weak self] (call, result) in
+            guard let self = self else { return }
             if call.method == "getAvailableStorage" {
                 if let availableStorage = self.getAvailableStorage() {
                     result(availableStorage)
@@ -29,7 +32,8 @@ import Photos
 
         // Media Channel Handler
         let mediaChannel = FlutterMethodChannel(name: MEDIA_CHANNEL, binaryMessenger: controller.binaryMessenger)
-        mediaChannel.setMethodCallHandler { (call, result) in
+        mediaChannel.setMethodCallHandler { [weak self] (call, result) in
+            guard let self = self else { return }
             if call.method == "addToGallery" {
                 guard let arguments = call.arguments as? [String: Any],
                       let path = arguments["path"] as? String else {
@@ -50,13 +54,11 @@ import Photos
     private func getAvailableStorage() -> Int64? {
         do {
             let attributes = try FileManager.default.attributesOfFileSystem(forPath: NSHomeDirectory())
-            if let freeSize = attributes[.systemFreeSize] as? Int64 {
-                return freeSize
-            }
+            return attributes[.systemFreeSize] as? Int64
         } catch {
             print("Error getting storage info: \(error.localizedDescription)")
+            return nil
         }
-        return nil
     }
 
     // Save video to Photos Library
@@ -69,14 +71,27 @@ import Photos
             return
         }
 
-        PHPhotoLibrary.shared().performChanges({
-            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: fileURL)
-        }) { success, error in
-            if success {
-                result("Video added to gallery successfully.")
-            } else {
-                let errorMessage = error?.localizedDescription ?? "Unknown error"
-                result(FlutterError(code: "FAILED", message: "Failed to add video to gallery.", details: errorMessage))
+        // Request Photo Library access
+        PHPhotoLibrary.requestAuthorization { status in
+            guard status == .authorized else {
+                DispatchQueue.main.async {
+                    result(FlutterError(code: "PERMISSION_DENIED", message: "Photo library access is denied.", details: nil))
+                }
+                return
+            }
+
+            // Save video
+            PHPhotoLibrary.shared().performChanges({
+                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: fileURL)
+            }) { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        result("Video added to gallery successfully.")
+                    } else {
+                        let errorMessage = error?.localizedDescription ?? "Unknown error"
+                        result(FlutterError(code: "FAILED", message: "Failed to add video to gallery.", details: errorMessage))
+                    }
+                }
             }
         }
     }
