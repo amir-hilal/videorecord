@@ -8,7 +8,7 @@ import Photos
     private let MEDIA_CHANNEL = "com.productra.shootsolo/media"
     var orientationLock = UIInterfaceOrientationMask.portrait
 
-    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+    override func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         return orientationLock
     }
 
