@@ -2,7 +2,7 @@ import UIKit
 import Flutter
 import Photos
 
-@UIApplicationMain
+@main
 @objc class AppDelegate: FlutterAppDelegate {
     private let STORAGE_CHANNEL = "com.productra.shootsolo/storage"
     private let MEDIA_CHANNEL = "com.productra.shootsolo/media"
