@@ -6,6 +6,11 @@ import Photos
 @objc class AppDelegate: FlutterAppDelegate {
     private let STORAGE_CHANNEL = "com.productra.shootsolo/storage"
     private let MEDIA_CHANNEL = "com.productra.shootsolo/media"
+    var orientationLock = UIInterfaceOrientationMask.portrait
+
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        return orientationLock
+    }
 
     override func application(
         _ application: UIApplication,
