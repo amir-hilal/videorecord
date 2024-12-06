@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Video App',
+      title: 'Shootsolo',
       theme: ThemeData.dark(),
       initialRoute: '/',
       routes: {
