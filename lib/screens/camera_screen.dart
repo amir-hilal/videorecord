@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:shootsolo/services/permission_service.dart';
@@ -56,6 +57,13 @@ class CameraScreenState extends State<CameraScreen> {
   void initState() {
     super.initState();
     _requestPermissionsAndInitialize();
+
+    // Lock device orientation to portrait
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
     enableImmersiveMode();
   }
 
@@ -341,6 +349,31 @@ class CameraScreenState extends State<CameraScreen> {
     _lastDistance = resetPinch();
   }
 
+  Widget buildCameraPreview() {
+    return Center(
+      child: ClipRect(
+        child: OverflowBox(
+          alignment: Alignment.center,
+          child: FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height,
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..rotateZ(isLandscape(context)
+                      ? 1.5708
+                      : 0), // Rotate for landscape
+                child: CameraPreview(_controller!),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final videoProvider = Provider.of<VideoProvider>(context);
@@ -365,7 +398,7 @@ class CameraScreenState extends State<CameraScreen> {
             child: Stack(
               children: [
                 if (isCameraInitialized && !isSwitchingCamera)
-                  CameraPreview(_controller!),
+                  buildCameraPreview(),
                 if (videoProvider.isGridVisible && isCameraInitialized)
                   Positioned.fill(
                     child: CustomPaint(
@@ -409,6 +442,13 @@ class CameraScreenState extends State<CameraScreen> {
     disableImmersiveMode();
     _controller?.dispose();
     _timerUtils.stopTimers();
+
+    // Reset orientation to allow all orientations
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
+  }
+
+  bool isLandscape(BuildContext context) {
+    return MediaQuery.of(context).orientation == Orientation.landscape;
   }
 }
