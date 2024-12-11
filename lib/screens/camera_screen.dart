@@ -349,31 +349,6 @@ class CameraScreenState extends State<CameraScreen> {
     _lastDistance = resetPinch();
   }
 
-  Widget buildCameraPreview() {
-    return Center(
-      child: ClipRect(
-        child: OverflowBox(
-          alignment: Alignment.center,
-          child: FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height,
-              child: Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.identity()
-                  ..rotateZ(isLandscape(context)
-                      ? 1.5708
-                      : 0), // Rotate for landscape
-                child: CameraPreview(_controller!),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final videoProvider = Provider.of<VideoProvider>(context);
@@ -397,14 +372,32 @@ class CameraScreenState extends State<CameraScreen> {
             aspectRatio: 9 / 16, // Ensure 9:16 aspect ratio
             child: Stack(
               children: [
+                // Camera preview
                 if (isCameraInitialized && !isSwitchingCamera)
-                  buildCameraPreview(),
+                  Center(
+                    child: AspectRatio(
+                      aspectRatio: _controller?.value.aspectRatio ??
+                          1.0, // Keep the correct aspect ratio
+                      child: FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _controller?.value.previewSize?.height ?? 1.0,
+                          height: _controller?.value.previewSize?.width ?? 1.0,
+                          child: CameraPreview(_controller!),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Grid overlay
                 if (videoProvider.isGridVisible && isCameraInitialized)
                   Positioned.fill(
                     child: CustomPaint(
                       painter: GridPainter(),
                     ),
                   ),
+
+                // Camera controls
                 CameraControls(
                   isSwitchingCamera: isSwitchingCamera,
                   isCameraInitialized: isCameraInitialized,
@@ -414,6 +407,8 @@ class CameraScreenState extends State<CameraScreen> {
                   stopRecording: _stopRecording,
                   setZoom: _setZoom,
                 ),
+
+                // Zoom control
                 if (!videoModalProvider.isModalShown)
                   Positioned(
                     bottom: 155,
@@ -424,6 +419,8 @@ class CameraScreenState extends State<CameraScreen> {
                       setZoom: _setZoom,
                     ),
                   ),
+
+                // Save video modal
                 if (videoModalProvider.isModalShown)
                   SaveVideoModal(
                     onSave: () => _handleSave(videoModalProvider),

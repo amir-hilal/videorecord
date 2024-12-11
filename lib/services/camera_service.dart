@@ -1,6 +1,7 @@
 //lib/services/camera_service.dart
 
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 
 final logger = Logger();
@@ -21,13 +22,15 @@ class CameraService {
       }
       _currentCamera = cameras[cameraIndex];
       _controller = CameraController(
-        
         _currentCamera!,
         ResolutionPreset.veryHigh,
         enableAudio: true,
       );
       await _controller!.initialize();
       await _controller!.setZoomLevel(zoomLevel);
+
+      // Lock the camera orientation to portrait
+      await _controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
     } catch (e) {
       logger.e('Error initializing camera', error: e);
       rethrow;
