@@ -10,6 +10,8 @@
 .svn/
 migrate_working_dir/
 
+key.jks
+
 # IntelliJ related
 *.iml
 *.ipr
